@@ -24,7 +24,6 @@ namespace tinySTL {
 		typedef void                difference_type;
 		typedef void                pointer;
 		typedef void                reference;
-		
 	};
 
 	template<typename T, typename Difference>
@@ -112,6 +111,5 @@ namespace tinySTL {
 	{
 		return static_cast<typename iterator_traits<iterator>::value_type*>(0);
 	}
-
 }
 #endif

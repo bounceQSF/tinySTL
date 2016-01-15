@@ -25,7 +25,7 @@ namespace tinySTL {
 
 		typedef bidirectional_iterator_tag		   iterator_category;
 		typedef T                                  value_type;
-		typedef Ptr                                iterator;
+		typedef Ptr                                pointer;
 		typedef Ref                                reference;
 		typedef size_t                             size_type;
 		typedef ptrdiff_t                          difference_type;
@@ -37,8 +37,48 @@ namespace tinySTL {
 		list_iterator(link_type n):node(n){}
 		list_iterator(const iterator& i):node(i.node) {}//why not self
 
-		bool operator==(const self& x)const
+		bool operator==(const self& x)const { return node == x.node; }
+		bool operator!=(const self& x)const { return !(node == x.node); }
+		
+		reference operator*()const { return node->data; }
+		pointer operator->()const { return &(operator*()); }
+
+		self& operator++()
+		{
+			node = node->next;
+			return *this;
+		}
+
+		self& operator++(int)
+		{
+			auto tmp = *this;
+			++*this;
+			return tmp;
+		}
+
+		self& operator--()
+		{
+			node = node->prev;
+			return *this;
+		}
+
+		self& operator--(int)
+		{
+			auto tmp = *this;
+			--*this;
+			return *this;
+		}
+
 	};
 
+	template<typename T, typename Alloc = alloc>
+	class list{
+	protected:
+		typedef simple_alloc<list_node, Alloc> list_node_allocator;
+
+	protected:
+		link_type get_node() { return list_node_allocator::allocate(); }
+		void put_node(link_type p) { return list_node_allocator::deallocate(p); }
+	}
 
 }

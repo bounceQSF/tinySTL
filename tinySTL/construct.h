@@ -23,9 +23,12 @@ namespace tinySTL {
 	}
 
 	template<typename _ForwardIterator, typename T>
-	void _destroy(_ForwardIterator first, _ForwardIterator last, T*)
+	void destroy(_ForwardIterator first, _ForwardIterator last)
 	{
 		using _trivial_destructor = typename _type_traits<T>::has_trivial_destructor;
 		_destroy(first, last, _trivial_destructor());
 	}
+
+	void destroy(char* first, char* last){}
+	void destroy(wchar_t* first, wchar_t* last) {}
 }
