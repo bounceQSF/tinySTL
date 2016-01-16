@@ -76,13 +76,12 @@ namespace tinySTL {
 		return !(r < l) ? l : r;
 	}
 
-	template<typename T, typename cmp>
-	const T& max(const T& l, const T& r, Cmp c)
+	template<typename T, typename Compare>
+	const T& min(const T& l, const T& r, Compare c)
 	{
 		return !c(r, l) ? r : l;
 	}
 	
-
 	//all_of
 	template<typename _InputIterator, typename T>
 	bool all_of(_InputIterator first, _InputIterator last, const T& value)
@@ -197,7 +196,7 @@ namespace tinySTL {
 	//find_first_of
 	//the first iterator can just be inputIterator
 	template<typename _InputIterator, typename _ForwardIterator>
-	_InputIterator find_first_of(_InputIterator first1, _InputIterator1 last1,
+	_InputIterator find_first_of(_InputIterator first1, _InputIterator last1,
 		_ForwardIterator first2, _ForwardIterator last2)
 	{
 		for (; first1 != last1; ++first1) {
@@ -208,8 +207,8 @@ namespace tinySTL {
 		return last1;
 	}
 
-	template<typename _InputIterator, typename _ForwardIterator>
-	_InputIterator find_first_of(_InputIterator first1, _InputIterator1 last1,
+	template<typename _InputIterator, typename _ForwardIterator, typename UnaryPredicate>
+	_InputIterator find_first_of(_InputIterator first1, _InputIterator last1,
 		_ForwardIterator first2, _ForwardIterator last2, UnaryPredicate pred)
 	{
 		for (; first1 != last1; ++first1) {
@@ -292,7 +291,7 @@ namespace tinySTL {
 	template<typename _InputIterator1, typename _InputIterator2>
 	bool equal(_InputIterator1 first1, _InputIterator2 last1, _InputIterator2 first2)
 	{
-		return equal(first1, last1, first2, equal_to<typename iterator_traits<_InputIterator1>::value_type>());)
+		return equal(first1, last1, first2, equal_to<typename iterator_traits<_InputIterator1>::value_type>());
 	}
 
 	template<typename _InputIterator1, typename _InputIterator2, typename BinaryPredicate>
@@ -384,15 +383,15 @@ namespace tinySTL {
 	//advance
 	namespace{
 		template<typename _InputIterator, typename Distance>
-		void _advance(_InputIterator& it, distance n, input_iterator_tag)
+		void _advance(_InputIterator& it, Distance n, input_iterator_tag)
 		{
 			assert(n >= 0);
 			while (n--)
 				++it;
 		}
 
-		template<typename _BidirectionalIterator, typename Distance>
-		void _advance(_BidirectionalIterator& it, distance n, bidirectional_iterator_tag)
+		template<typename _BidirectIterator, typename Distance>
+		void _advance(_BidirectIterator& it, Distance n, bidirectional_iterator_tag)
 		{
 			if (n < 0)
 				while (n++)
@@ -403,7 +402,7 @@ namespace tinySTL {
 		}
 
 		template<typename _RandomIterator, typename Distance>
-		void _advance(_RandomIterator& it, distance n, random_access_iterator_tag)
+		void _advance(_RandomIterator& it, Distance n, random_access_iterator_tag)
 		{
 			if (n < 0)
 				it -= (-n);
@@ -413,7 +412,7 @@ namespace tinySTL {
 
 	}
 	template<typename _InputIterator, typename Distance>
-	void advance(_InputIterator &it, distance n)
+	void advance(_InputIterator &it, Distance n)
 	{
 		typedef iterator_traits<_InputIterator>::iterator_category iteraotr_category;
 		_advance(it, n, iteraotr_category());
@@ -475,7 +474,7 @@ namespace tinySTL {
 			return b;
 	}
 
-	template<typename _RandonmIterator>
+	template<typename _RandonmIterator, typename T>
 	_RandonmIterator unguarded_partition(_RandonmIterator first, _RandonmIterator last, T pivot)
 	{
 		while (true) {
@@ -626,12 +625,6 @@ namespace tinySTL {
 	};
 
 	template<typename _InputIterator, typename _OutputIterator>
-	_OutputIterator __copy_dispatch(_InputIterator first, _InputIterator last, _OutputIterator d_first)
-	{
-		return __copy(first, last, d_first, iterator_category(first));
-	}
-
-	template<typename _InputIterator, typename _OutputIterator>
 	_OutputIterator __copy(_InputIterator first, _InputIterator last, _OutputIterator d_first, input_iterator_tag)
 	{
 		for (; first != last; ++result, ++first)
@@ -645,24 +638,24 @@ namespace tinySTL {
 		return __copy_d(first, last, d_first);
 	}
 
-	template<typename _RandomIterator, typename _OutputIterator>
-	_OutputIterator __copy_d(_RandomIterator first, _RandomIterator last, _OutputIterator d_first)
-	{
-		for (auto n = last - first; n > 0; --n, ++result, ++first)
-			*result = *first;
-		return result;
-	}
-
 	template<typename _InputIterator, typename _OutputIterator, typename UnaryPredicate>
 	_OutputIterator copy_if(_InputIterator first, _InputIterator last,
 		_OutputIterator d_first,
 		UnaryPredicate pred)
 	{
 		for (; first != last; ++first) {
-			if(UnaryPredicate(*first))
+			if (UnaryPredicate(*first))
 				*d_first++ = *first;
 		}
 		return d_first;
+	}
+
+	template<typename _RandomIterator, typename _OutputIterator>
+	_OutputIterator __copy_d(_RandomIterator first, _RandomIterator last, _OutputIterator d_first)
+	{
+		for (auto n = last - first; n > 0; --n, ++result, ++first)
+			*result = *first;
+		return result;
 	}
 
 	template<typename T>
@@ -675,7 +668,7 @@ namespace tinySTL {
 	template<typename T>
 	T* __copy_t(const T* first, const T* last, T* d_first, _false_type)
 	{
-		__copy_d(first, lats, d_first, (ptrdiff_t*)0);
+		return __copy_d(first, lats, d_first, (ptrdiff_t*)0);
 	}
 
 	//copy_backward
@@ -770,18 +763,11 @@ namespace tinySTL {
 
 	//swap
 	template<typename _ForwardIterator1, typename _ForwardIterator2, typename T>
-	void iter_swap(_ForwardIterator1 it1, _ForwardIterator it2, T*)
+	void iter_swap(_ForwardIterator1 it1, _ForwardIterator2 it2, T*)
 	{
 		auto tmp = *it1;
 		*it1 = *it2;
 		*it2 = *it1;
 	}
 
-	template<typename T>
-	void swap(T& a, T&b)
-	{
-		auto tmp = a;
-		a = b;
-		b = tmp;
-	}
 }

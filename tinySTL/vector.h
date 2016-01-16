@@ -2,23 +2,22 @@
 
 #include "algorithm.h"
 #include "typetraits.h"
-#include "allocator.h"
+#include "alloc.h"
 #include "reverseIterator.h"
 #include "uninitializeFunctions.h"
 #include "construct.h"
 
-#include <algorithm>
 /***********vector************/
 //reverse to be written
 namespace tinySTL {
-	template<typename T, typename Alloc = allocator<T>>
+	template<typename T, typename Alloc = alloc>
 
 	class vector {
 	private:
 		T* _first;
 		T* _last;
 		T* _free;
-		using dataAllocator = Alloc;
+		typedef simple_alloc<value_type, Alloc> data_allocator;
 
 	public:
 		typedef T                                  value_type;

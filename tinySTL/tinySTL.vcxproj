@@ -21,13 +21,16 @@
   <ItemGroup>
     <ClInclude Include="algorithm.h" />
     <ClInclude Include="alloc.h" />
+    <ClInclude Include="AVLTree.h" />
     <ClInclude Include="construct.h" />
     <ClInclude Include="functional.h" />
     <ClInclude Include="heap.h" />
     <ClInclude Include="iterator.h" />
     <ClInclude Include="list.h" />
     <ClInclude Include="reverseIterator.h" />
+    <ClInclude Include="stack.h" />
     <ClInclude Include="string.h" />
+    <ClInclude Include="testAVL.h" />
     <ClInclude Include="typetraits.h" />
     <ClInclude Include="uninitializeFunctions.h" />
     <ClInclude Include="utility.h" />

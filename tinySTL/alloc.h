@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdlib>
+#include <new>
+
 #include "algorithm.h"
+#include "construct.h"
 
 namespace tinySTL {
 	//simple_alloc
@@ -66,6 +69,7 @@ namespace tinySTL {
 	void(*malloc_alloc_template<inst>::malloc_alloc_oom_handler)() = nullptr;
 
 	typedef malloc_alloc_template<0> malloc_alloc;
+	
 
 	//default_alloc_template
 	template<bool threads, int inst>
@@ -83,7 +87,7 @@ namespace tinySTL {
 			char client[1];
 		};
 
-		static obj* volatile *free_list[ENFreeLists::NFREELISTS];
+		static obj* volatile free_list[ENFreeLists::NFREELISTS];
 
 	private:
 		static char *start_free;
@@ -101,7 +105,7 @@ namespace tinySTL {
 			return (bytes + ALIGN - 1) / ALIGN - 1;
 		}
 		
-		static void* refill(size_n n)
+		static void* refill(size_t n)
 		{
 			size_t nobjs = 20;
 			obj* volatile *my_free_list, *cur_obj, *next_obj;
@@ -109,7 +113,7 @@ namespace tinySTL {
 			if (nobjs == 1)
 				return chunk;
 			my_free_list = free_list + FREELIST_INDEX(n);
-			*my_free_list = (obj*)(chunk + n);
+			*my_free_list = next_obj = (obj*)(chunk + n);
 			for (auto i = 1;; ++i) {
 				cur_obj = next_obj;
 				next_obj = (obj*)((char*)cur_obj + n);
@@ -140,23 +144,23 @@ namespace tinySTL {
 				return ret;
 			}
 			else {
-				auto byte_to_get = 2 * total_bytes + ROUND_UP(heap_size >> 4);// I cannot fully understand why
+				auto bytes_to_get = 2 * total_bytes + ROUND_UP(heap_size >> 4);// I cannot fully understand why
 				if (bytes_left > ALIGN) {
 					auto my_free_list = free_list + FREELIST_INDEX(bytes_left);
 					((obj*)start_free)->next = *my_free_list;
 					*my_free_list = (obj*)start_free;
 				}
-				start_free = (char*)malloc(byte_to_get);
+				start_free = (char*)malloc(bytes_to_get);
 				if (!start_free) {
 					obj *volatile* my_free_list, *p;
-					for (auto i = size; i <= MAXBYTES; i += ALGIN) {
-						*my_free_list = free_list + FREELIST_INDEX(bytes_left);
+					for (auto i = size; i <= MAXBYTES; i += ALIGN) {
+						my_free_list = free_list + FREELIST_INDEX(bytes_left);
 						p = *my_free_list;
 						if (!p) {
 							*my_free_list = p->next;
 							start_free = (char*)p;
 							end_free = start_free + i;
-							return (chunk_alloc(size_nobjs));
+							return (chunk_alloc(size, nobjs));
 						}
 					}
 					end_free = nullptr;
@@ -164,7 +168,7 @@ namespace tinySTL {
 					//why not apply for less memory? size instead
 				}
 				heap_size = bytes_to_get;
-				end_free = first_free + bytes_to_get;
+				end_free = start_free + bytes_to_get;
 				return (chunk_alloc(size, nobjs));
 			}
 		}
@@ -172,9 +176,10 @@ namespace tinySTL {
 	public:
 		static void* allocate(size_t bytes)
 		{
+			obj* volatile *my_free_list;
 			if (bytes > MAXBYTES)
 				return malloc_alloc::allocate(bytes);
-			obj* volatile *my_free_list;
+			
 			my_free_list = free_list + FREELIST_INDEX(bytes);
 			auto ret = *my_free_list;
 			if (!ret) {
@@ -182,7 +187,7 @@ namespace tinySTL {
 				return r;
 			}
 			*my_free_list = ret->next;
-			return (result);
+			return (ret);
 		}
 
 		static void deallocate(void *ptr, size_t bytes)
@@ -221,23 +226,24 @@ namespace tinySTL {
 	size_t default_alloc_template<threads, inst>::heap_size = 0;
 
 	template<bool threads, int inst>
-	default_alloc_template<threads, inst>::obj* volatile default_alloc_template<threads, inst>::free_list[NFREELISTS] = { nullptr };
+	typename default_alloc_template<threads, inst>::obj* volatile default_alloc_template<threads, inst>::free_list[NFREELISTS] = { nullptr };
+
+	typedef default_alloc_template<true, 0> alloc;
+	typedef default_alloc_template<false, 0> single_client_alloc;
 
 	//allocator
 	template<typename T>
-	T* allocate(ptrdiff_t size, T*) {
-		set_new_handler(nullptr);
-		auto tmp = static_cast<T *>(::operator new((size_t)(size * sizeof(T))));
+	inline T* allocate(ptrdiff_t size, T*) {
+		//set_new_handler(nullptr);
+		T* tmp = (T*)(::operator new((size_t)(sizeof(T))));
 		if (!tmp) {
-			std::cerr << "out of memory" << endl;
-			exit(1);
+			assert(0);
 		}
 		return tmp;
 	}
 
 	template<typename T>
-	void deallocate(T* buffer)
-	{
+	inline void deallocate(T* buffer) {
 		::operator delete(buffer);
 	}
 
@@ -252,17 +258,30 @@ namespace tinySTL {
 		typedef size_t                             size_type;
 		typedef ptrdiff_t                          difference_type;
 
-		static pointer allocate(size_type n)
+	
+		/*static void deallocate(T* buffer)
 		{
-			return tinySTL::allocate(static_cast<difference_type>(n), nullptr);
+			::operator delete(buffer);
+		}*/
+
+		static pointer allocate(size_type n = 1)
+		{
+			//if (!n) return nullptr;
+			//return static_cast<T*>(alloc::allocate(sizeof(T) * n));
+			return  tinySTL::allocate((difference_type)n, (pointer)nullptr);
 		}
 
 		static void deallocate(pointer p) { tinySTL::deallocate(p); }
-		static void destroy(pointer fisrt, pointer last)
+		static void destroy(pointer first, pointer last)
 		{
 			for (; first != last; ++first) {
 				first->~T();
 			}
+		}
+
+		static void destroy(pointer ptr)
+		{
+			ptr->~T();			
 		}
 
 		static void construct(pointer fisrt, const value_type& value)
@@ -270,8 +289,13 @@ namespace tinySTL {
 			new(ptr)T(value);
 		}
 
-		pointer address(reference x) { return (pointer)&x; }
-		const_pointer address(const_reference x) { return (const_pointer)&x; }
+		static void construct(pointer ptr)
+		{
+			new(ptr)T();
+		}
+
+		static pointer address(reference x) { return (pointer)&x; }
+		static const_pointer address(const_reference x) { return (const_pointer)&x; }
 	};
 
 }

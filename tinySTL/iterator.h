@@ -65,11 +65,11 @@ namespace tinySTL {
 
 	template<typename iterator>
 	struct iterator_traits {
-		typedef iterator::iterator_category          iterator_category;
-		typedef iterator::value_type                 value_type;
-		typedef iterator::difference_type            difference_type;
-		typedef iterator::pointer                    pointer;
-		typedef iterator::reference                  reference;
+		typedef typename iterator::iterator_category          iterator_category;
+		typedef typename iterator::value_type                 value_type;
+		typedef typename iterator::difference_type            difference_type;
+		typedef typename iterator::pointer                    pointer;
+		typedef typename iterator::reference                  reference;
 	};
 
 	template<typename T>
