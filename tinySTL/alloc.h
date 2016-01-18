@@ -258,7 +258,6 @@ namespace tinySTL {
 		typedef size_t                             size_type;
 		typedef ptrdiff_t                          difference_type;
 
-	
 		/*static void deallocate(T* buffer)
 		{
 			::operator delete(buffer);
@@ -297,5 +296,4 @@ namespace tinySTL {
 		static pointer address(reference x) { return (pointer)&x; }
 		static const_pointer address(const_reference x) { return (const_pointer)&x; }
 	};
-
 }
