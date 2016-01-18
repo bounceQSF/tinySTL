@@ -3,6 +3,7 @@
 #include "alloc.h"
 #include "construct.h"
 #include "functional.h"
+#include "utility.h"
 
 namespace tinySTL {
 	typedef bool Rb_tree_Color_type;
@@ -209,7 +210,7 @@ namespace tinySTL {
 	public:
 		void insert_equal(const value_type& v)
 		{
-			link_type y = header;
+			link_type y = _header;
 			link_type x = root();
 			while (x != nullptr) {
 				y = x;
@@ -234,12 +235,118 @@ namespace tinySTL {
 					return pair<iterator, bool>(__insert(x, y, v), true);
 				else
 					--j;
-
-
 			}
+			if (key_comp(key(j.node), KeyOfT()(v)))
+				return pair<iterator, bool>(__insert(x, y, v), true);
+			return pair<iterator, bool>(j, false);
 		}
 
+		iterator __insert(base_ptr x, base_ptr y, const value_type& v)
+		{
+			link_type z;
+			if (y == _header || x || key_comp(KeyOfT()(v), key(y))) {
+				z = create_node(v);
+				left(y) = z;
+				if (y == _header) {
+					root() = z;
+					rightmost = z;
+				}
+				else if (y == leftmost())
+					leftmost() = z;
+			}
+			else {
+				z = create_node(v);
+				right(y) = z;
+				if (y == rightmost())
+					rightmost() = z;
+			}
+			parent(z) = y;
+			left(z) = nullptr;
+			right(z) = nullptr;
+			rb_tree_rebalance(z, header->parent);
+			++_size;
+			return iterator(z);
+		}
+
+		void rb_tree_rebalance(Rb_tree_Node_base *x, Rb_tree_Node_base*& root)
+		{
+			x->_color = Rb_tree_red;
+			while (x != root && x->_parent->_color == Rb_tree_red) {//父节点为红
+				if (x == x->_parent->_left) {//父节点为祖父节点的左子节点
+					auto u = x->_parent->_right;
+					if (u && u->_color == Rb_tree_red) {//伯父节点为红色
+						x->_parent->_color = Rb_tree_black;
+						u->_color = Rb_tree_black;
+						x->_parent->_parent = Rb_tree_red;
+						x = x->_parent->_parent;
+					}
+					else {//伯父节点为黑色或不存在
+						if (x == x->_parent->_right) {
+							x = x->_parent;
+							x = rb_tree_rotate_left(x, root);
+						}
+						x->_parent->_parent->_color = Rb_tree_red;
+						x->_parent->_color = Rb_tree_red;
+						rb_tree_rotate_right(x->_parent->_parent, root);
+					}
+				}
+				else {//父节点为祖父节点的右子节点
+					auto u = x->_parent->_right;
+					if (u && u->_color == Rb_tree_red) {//伯父节点为红色
+						x->_parent->_color = Rb_tree_black;
+						u->_color = Rb_tree_black;
+						x->_parent->_parent = Rb_tree_red;
+						x = x->_parent->_parent;
+					}
+					else {//伯父节点为黑色或不存在
+						if (x == x->_parent->_left) {
+							x = x->_parent;
+							x = rb_tree_rotate_right(x, root);
+						}
+						x->_parent->_parent->_color = Rb_tree_red;
+						x->_parent->_color = Rb_tree_red;
+						rb_tree_rotate_left(x->_parent->_parent, root);
+					}
+				}
+			}
+			root->_color = Rb_tree_black;
+		}
+
+		void rb_tree_rotate_left(Rb_tree_Node_base *x, Rb_tree_Node_base*& root)
+		{
+			auto tmp = x->_right;
+			x->_right = tmp->_left;
+			if (tmp->_left)
+				tmp->_left->_parent = x;
+			x->_parent = tmp->_parent;
+			if (x == root)
+				root = y;
+			else if (x == x->_parent->left)
+				x->_parent->left = tmp;
+			else
+				x->_parent->_right = tmp;
+			tmp->_left = x;
+			x->_parent = tmp;
+		}
+
+		void rb_tree_rotate_right(Rb_tree_Node_base *x, Rb_tree_Node_base*& root)
+		{
+			auto tmp = x->_left;
+			x->_left = tmp->_right;
+			if (tmp->_right)
+				tmp->_right->_parent = x;
+			tmp->_parent = x->_parent;
+			if (x == root)
+				root = tmp;
+			else if (x == x->_parent->_right)
+				x->_parent->_right = tmp;
+			else
+				x->_parent->_left = tmp;
+			tmp->_right = x;
+			tmp->_parent = x->_parent;
 	};
+
+	
 
 	
 }
