@@ -123,18 +123,32 @@ namespace tinySTL {
 	template<typename _InputIterator, typename T>
 	_InputIterator find(_InputIterator first, _InputIterator last, const T& value)
 	{
-		for (; first != last; ++first)
-			if (*first == value) break;
+		typedef typename iterator_traits<_InputIterator>::category category;
+		return find(first, last, value, category());
+	}
+
+	template<typename _InputIterator, typename T>
+	_InputIterator find(_InputIterator first, _InputIterator last, const T& value, input_iterator_tag)
+	{
+		while (first != last && !(*first == value))
+			++first;
 		return first;
+	}
+
+	template<typename _RandomIterator, typename T>
+	_RandomIterator find(_RandomIterator first, _RandomIterator last, const T& value, random_access_iterator_tag)
+	{
+		auto count = last - first;
+		while (count && *(last - count) != value)
+			--count;
+		return last - count;
 	}
 
 	//find_if
 	template<typename _InputIterator, typename UnaryPredicate>
 	_InputIterator find_if(_InputIterator first, _InputIterator last, UnaryPredicate pred)
 	{
-		for (; first != last; ++first)
-			if (pred(*first)) break;
-		return first;
+		while
 	}
 
 	//find_if_not
@@ -421,8 +435,8 @@ namespace tinySTL {
 	/******************sort*********************/
 	const int stl_threhold = 16;
 
-	template<typename _RandonmIterator>
-	void sort(_RandonmIterator first, _RandonmIterator last)
+	template<typename _RandonIterator>
+	void sort(_RandonIterator first, _RandonIterator last)
 	{
 		if (first != last) {
 			introsort_loop(first, last, value_type(first), lg(last - first) * 2);
@@ -441,8 +455,8 @@ namespace tinySTL {
 		return k;
 	}
 
-	template<typename _RandonmIterator, typename T, typename size>
-	void introsort_loop(_RandonmIterator first, _RandonmIterator last, T*, size dep_limit)
+	template<typename _RandonIterator, typename T, typename size>
+	void introsort_loop(_RandonIterator first, _RandonIterator last, T*, size dep_limit)
 	{
 		while (last - first > stl_threhold) {
 			if (dep_limit == 0) {
@@ -474,8 +488,8 @@ namespace tinySTL {
 			return b;
 	}
 
-	template<typename _RandonmIterator, typename T>
-	_RandonmIterator unguarded_partition(_RandonmIterator first, _RandonmIterator last, T pivot)
+	template<typename _RandonIterator, typename T>
+	_RandonIterator unguarded_partition(_RandonIterator first, _RandonIterator last, T pivot)
 	{
 		while (true) {
 			while (*first < pivot) ++first;
@@ -488,8 +502,8 @@ namespace tinySTL {
 	}
 
 	//insertion_sort
-	template<typename _RandonmIterator>
-	void final_insertion_sort(_RandonmIterator first, _RandonmIterator last)
+	template<typename _RandonIterator>
+	void final_insertion_sort(_RandonIterator first, _RandonIterator last)
 	{
 		if (last - first > stl_threhold) {
 			insertion_sort(first, first + stl_threhold);
@@ -499,21 +513,21 @@ namespace tinySTL {
 			insertion_sort(first, last);
 	}
 
-	template<typename _RandonmIterator>
-	void unguarded_insertion_sort(_RandonmIterator first, _RandonmIterator last)
+	template<typename _RandonIterator>
+	void unguarded_insertion_sort(_RandonIterator first, _RandonIterator last)
 	{
 		unguarded_insertion_sort_aux(first, last, value_type(first));
 	}
 
-	template<typename _RandonmIterator, typename T>
-	void unguarded_insertion_sort_aux(_RandonmIterator first, _RandonmIterator last, T*)
+	template<typename _RandonIterator, typename T>
+	void unguarded_insertion_sort_aux(_RandonIterator first, _RandonIterator last, T*)
 	{
 		for (auto iter = first; iter != last; ++iter)
 			unguarded_linear_insert(iter, T(*iter));
 	}
 
-	template<typename _RandonmIterator, typename T>
-	void unguarded_linear_insert(_RandonmIterator last, T value)
+	template<typename _RandonIterator, typename T>
+	void unguarded_linear_insert(_RandonIterator last, T value)
 	{
 		auto iter = last;
 		--iter;
@@ -526,16 +540,16 @@ namespace tinySTL {
 	}
 
 
-	template<typename _RandonmIterator>
-	void insertion_sort(_RandonmIterator first, _RandonmIterator last)
+	template<typename _RandonIterator>
+	void insertion_sort(_RandonIterator first, _RandonIterator last)
 	{
 		if (first == last) return;
 		for (auto iter = first + 1; iter != last; ++iter)
 			linear_insert(first, iter, value_type(first));
 	}
 
-	template<typename _RandonmIterator, typename T>
-	void linear_insert(_RandonmIterator first, _RandonmIterator last, T*)
+	template<typename _RandonIterator, typename T>
+	void linear_insert(_RandonIterator first, _RandonIterator last, T*)
 	{
 		T value = *last;
 		if (value < *first) {
@@ -547,14 +561,14 @@ namespace tinySTL {
 	}
 
 	//partial_sort
-	template<typename _RandonmIterator>
-	void partial_sort(_RandonmIterator first, _RandonmIterator middle, _RandonmIterator last)
+	template<typename _RandomIterator>
+	void partial_sort(_RandomIterator first, _RandomIterator middle, _RandomIterator last)
 	{
 		__partial_sort(first, middle, last, value_type(first));
 	}
 
-	template<typename _RandonmIterator, typename T>
-	void partial_sort(_RandonmIterator first, _RandonmIterator middle, _RandonmIterator last, T*)
+	template<typename _RandomIterator, typename T>
+	void partial_sort(_RandomIterator first, _RandomIterator middle, _RandomIterator last, T*)
 	{
 		for (auto iter = middle; iter != last; ++iter) {
 			if(*iter < *first)
@@ -567,15 +581,38 @@ namespace tinySTL {
 	//generate_n
 
 	//distance
+	template<typename _InputIterator>
+	typename iterator_traits<_InputIterator>::difference_type distance(_InputIterator first, _InputIterator last, input_iterator_tag)
+	{
+		typename iterator_traits<_InputIterator>::difference_type n = 0;
+		while (first != last) {
+			++first, ++n;
+		}
+		return n;
+	}
+
+	template<typename _RandomIterator>
+	typename iterator_traits<_RandomIterator>::difference_type distance(_RandomIterator first, _RandomIterator last, random_access_iterator_tag)
+	{
+		return last - first;
+	}
+
+	template<typename _InputIterator>
+	typename iterator_traits<_InputIterator>::difference_type distance(_InputIterator first, _InputIterator last)
+	{
+		typedef typename iterator_traits<_InputIterator>::iterator_category category;
+		return distance(first, last, category());
+	}
+
 
 	//copy
 	template<typename _BidirectIterator1, typename _BidirectIterator2>
-	_BidirectIterator2 copy_backward(_BidirectIterator1 _first, _BidirectIterator1 _last, _BidirectIterator2 _last_d)
+	_BidirectIterator2 copy_backward(_BidirectIterator1 first, _BidirectIterator1 last, _BidirectIterator2 d_last)
 	{
-		for (; _last != _first; _last, _last_d) {
-			--*_last_d = --*_last;
+		for (; last != first; last, d_last) {
+			--*d_last = --*last;
 		}
-		return _last_d;
+		return d_last;
 	}
 
 	template<typename _InputIterator, typename _OutputIterator>
@@ -727,6 +764,7 @@ namespace tinySTL {
 	{
 		for (; first != last; )
 			*--d_last = *--last;
+		return d_last;
 	}
 
 	template<typename _RandomIterator, typename _BidirectIterator>
@@ -735,6 +773,7 @@ namespace tinySTL {
 	{
 		for (auto n = last - first; n > 0; --n)
 			*--d_last = *--last;
+		return d_last;
 	}
 
 	//compare

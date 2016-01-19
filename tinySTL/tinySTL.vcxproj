@@ -23,6 +23,7 @@
     <ClInclude Include="alloc.h" />
     <ClInclude Include="AVLTree.h" />
     <ClInclude Include="construct.h" />
+    <ClInclude Include="deque.h" />
     <ClInclude Include="functional.h" />
     <ClInclude Include="heap.h" />
     <ClInclude Include="iterator.h" />

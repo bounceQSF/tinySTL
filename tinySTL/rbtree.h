@@ -44,7 +44,7 @@ namespace tinySTL {
 
 		void increment() {//to be finished
 			if (_node->_right) {
-				_node = _node->_right->_right;
+				_node = _node->_right;
 				while (_node->_left) {
 					_node = _node->_left;
 				}
@@ -344,9 +344,6 @@ namespace tinySTL {
 				x->_parent->_left = tmp;
 			tmp->_right = x;
 			tmp->_parent = x->_parent;
+		}
 	};
-
-	
-
-	
 }
