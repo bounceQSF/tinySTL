@@ -31,16 +31,16 @@ namespace tinySTL {
 		typedef size_t                             size_type;
 		typedef ptrdiff_t                          difference_type;
 		typedef list_node<T>*                      link_type;
-		
+
 		link_type _node;
 
-		list_iterator(){}
-		list_iterator(link_type n):_node(n){}
-		list_iterator(const iterator& i):_node(i._node) {}//why not self
+		list_iterator() {}
+		list_iterator(link_type n) :_node(n) {}
+		list_iterator(const iterator& i) :_node(i._node) {}//why not self
 
 		bool operator==(const self& x)const { return _node == x._node; }
 		bool operator!=(const self& x)const { return !(_node == x._node); }
-		
+
 		reference operator*()const { return _node->data; }
 		pointer operator->()const { return &(operator*()); }
 
@@ -193,7 +193,7 @@ namespace tinySTL {
 	protected:
 		void transfer(iterator pos, iterator first, iterator last)
 		{
-			if (position != last){
+			if (position != last) {
 				last._node->prev->next = pos._node;
 				first._node->prev->next = last._node;
 				pos._node->prev->next = first._node;
@@ -203,9 +203,9 @@ namespace tinySTL {
 				first._node->prev = tmp;
 			}
 		}
-	
+
 	public:
-		void splice(iterator pos, list &x) 
+		void splice(iterator pos, list &x)
 		{
 			if (!x.empty())
 				transfer(pos, x.begin(), x.end());
@@ -217,7 +217,7 @@ namespace tinySTL {
 			if (j == pos || i == pos) return;
 			transfer(pos, i, j);
 		}
- 
+
 		void splice(iterator pos, list&, iterator first, iterator last)
 		{
 			if (first != last)

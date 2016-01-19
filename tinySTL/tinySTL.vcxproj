@@ -28,6 +28,7 @@
     <ClInclude Include="heap.h" />
     <ClInclude Include="iterator.h" />
     <ClInclude Include="list.h" />
+    <ClInclude Include="priority_queue.h" />
     <ClInclude Include="rbtree.h" />
     <ClInclude Include="reverseIterator.h" />
     <ClInclude Include="stack.h" />

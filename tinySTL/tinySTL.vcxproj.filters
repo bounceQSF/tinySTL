@@ -72,6 +72,9 @@
     <ClInclude Include="deque.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="priority_queue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="源.cpp">

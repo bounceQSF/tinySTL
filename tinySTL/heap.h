@@ -72,6 +72,12 @@ namespace tinySTL {
 		}
 	}
 
+	template<typename _RandonmIterator, typename BinaryPredicate>
+	void make_heap(_RandonmIterator first, _RandonmIterator last, BinaryPredicate pred)
+	{
+		//__make_heap(first, last, value_type(first), distance_type(first));
+	}
+
 	template<typename _RandonmIterator>
 	void make_heap(_RandonmIterator first, _RandonmIterator last)
 	{
