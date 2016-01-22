@@ -3,13 +3,13 @@
 #include "alloc.h"
 #include "stack.h"
 #include "algorithm.h"
+#include "deque.h"
 
 #include <iostream>
 using std::ostream;
 //iterator to be finished & erase operation;
 
-template <typename T>
-class deque;
+
 
 namespace tinySTL {
 	template<typename T>

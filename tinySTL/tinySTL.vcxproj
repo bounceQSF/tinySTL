@@ -24,13 +24,15 @@
     <ClInclude Include="AVLTree.h" />
     <ClInclude Include="construct.h" />
     <ClInclude Include="deque.h" />
-    <ClInclude Include="functional.h" />
+    <ClInclude Include="function.h" />
     <ClInclude Include="heap.h" />
     <ClInclude Include="iterator.h" />
     <ClInclude Include="list.h" />
     <ClInclude Include="priority_queue.h" />
+    <ClInclude Include="queue.h" />
     <ClInclude Include="rbtree.h" />
     <ClInclude Include="reverseIterator.h" />
+    <ClInclude Include="set.h" />
     <ClInclude Include="stack.h" />
     <ClInclude Include="string.h" />
     <ClInclude Include="testAVL.h" />
@@ -40,7 +42,6 @@
     <ClInclude Include="vector.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="vector.cpp" />
     <ClCompile Include="源.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -114,11 +115,15 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

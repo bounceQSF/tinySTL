@@ -1,11 +1,11 @@
 #pragma once
 
 #include "vector.h"
-#include "functional.h"
+#include "function.h"
 #include "heap.h"
 
 namespace tinySTL {
-	template<typename T, typename Sequence = tinySTL::vector<T>, typename Compare = tinySTL::less<typename Sequence::value_type>>
+	template<typename T, typename Sequence = vector<T>, typename Compare = less<typename Sequence::value_type>>
 	class priority_queue
 	{
 	public:

@@ -2,7 +2,7 @@
 //make_heap
 //up
 //different
-#include "functional.h"
+#include "function.h"
 #include "iterator.h"
 
 //first version without custom cmp

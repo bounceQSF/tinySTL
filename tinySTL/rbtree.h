@@ -2,13 +2,14 @@
 #include "algorithm.h"
 #include "alloc.h"
 #include "construct.h"
-#include "functional.h"
+//#include "function.h"
 #include "utility.h"
+
 
 namespace tinySTL {
 	typedef bool Rb_tree_Color_type;
 	const Rb_tree_Color_type Rb_tree_red = false;
-	const Rb_tree_Color_type Rb_tree_red = true;
+	const Rb_tree_Color_type Rb_tree_black = true;
 
 	struct Rb_tree_Node_base {
 		typedef Rb_tree_Color_type color_type;
@@ -62,7 +63,21 @@ namespace tinySTL {
 
 		void decrement()
 		{
-
+			if (_node->_color == Rb_tree_red && _node->_parent->_parent == _node) //_node = header
+				_node = _node->_right;
+			else if (_node->_left) {
+				_node = _node->_left;
+				while (_node->_right)
+					_node = _node->_right;
+			}
+			else {
+				auto tmp = _node->_parent;
+				while (tmp->_left = _node) {
+					_node = tmp;
+					tmp = tmp->_parent;
+				}
+				_node = tmp;
+			}
 		}
 	};
 
@@ -102,22 +117,22 @@ namespace tinySTL {
 			 typename Alloc = alloc>
 	class rb_tree {
 	protected:
-		typedef void*                                       void_pointer;
-		typedef Rb_tree_Node_base*                          base_ptr;
-		typedef Rb_tree_Node<T>                             rb_tree_node;
-		typedef simple_alloc<rb_tree_node, alloc>           rb_tree_allocator;
-		typedef Rb_tree_Color_type                          color_type;
+		typedef void*                                                   void_pointer;
+		typedef Rb_tree_Node_base*                                  base_ptr;
+		typedef Rb_tree_Node<T>                                      rb_tree_node;
+		typedef simple_alloc<rb_tree_node, alloc>             rb_tree_allocator;
+		typedef Rb_tree_Color_type                                     color_type;
 
 	public:
-		typedef Key                                         Keytype;
-		typedef T                                           value_type;
-		typedef value_type*                                 pointer;
-		typedef const value_type*                           const_pointer;
-		typedef value_type&                                 reference;
-		typedef const value_type&                           const_reference;
-		typedef rb_tree_node*                               link_type;
-		typedef size_t                                      size_type;
-	    typedef ptrdiff_t                                   difference_Type;
+		typedef Key                                                              Keytype;
+		typedef T                                                          value_type;
+		typedef value_type*                                               pointer;
+		typedef const value_type*                                       const_pointer;
+		typedef value_type&                                                reference;
+		typedef const value_type&                                      const_reference;
+		typedef rb_tree_node*                                             link_type;
+		typedef size_t                                                           size_type;
+	    typedef ptrdiff_t                                                       difference_Type;
 
 	protected:
 		link_type get_node() { return rb_tree_allocator::allocate(); }
@@ -139,7 +154,7 @@ namespace tinySTL {
 			auto tmp = create_node(x->_value_field);
 			tmp->_left = nullptr;
 			tmp->_right = nullptr;
-			tmp->_parent = nullptr; //?
+			tmp->_parent = nullptr; 
 			tmp->_color = x->_color;
 		}
 
@@ -179,10 +194,100 @@ namespace tinySTL {
 	public:
 		typedef Rb_tree_iterator<value_type, reference, pointer> iterator;
 
+	public:
+		//let us put alloc aside first
+		rb_tree() : _size(0), _key_cmp(Compare())
+		{ init(); }
+		rb_tree(const Compare& cmp) : _size(0), _key_cmp(cmp)
+		{ init();}
+		rb_tree(const rb_tree<Key, T, KeyOfT, Compare, Alloc>& tree) :
+			_size(tree._size), _key_cmp(tree._key_cmp)
+		{
+			if (!tree.root())
+				init();
+			else {
+				color(_header) = Rb_tree_red;
+				root() = copy(tree.root(), tree._header);
+				leftmost() = minimum(root());
+				rightmost() = maximum(root());
+			}
+		}
+
+		rb_tree<Key, T, KeyOfT, Compare, Alloc> operator=(const rb_tree<Key, T, KeyOfT, Compare, Alloc>& tree)
+		{
+			if (this != &tree) {
+				clear();
+				_size = tree._size;
+				_key_cmp = tree._key_cmp;
+				if (!tree.root) {
+					leftmost() = _header;
+					rightmost() = _header;
+					root() = nulllptr;
+				}
+				else {
+					root() = copy(tree.root(), tree._header);
+					leftmost() = minimum(root());
+					rightmost() = maximum(root());
+				}
+			}
+			return *this;
+		}
+
+		void swap(const rb_tree<Key, T, KeyOfT, Compare, Alloc>& tree)
+		{
+			tinySTL::swap(_header, tree._header);
+			tinySTL::swap(_size, tree._size);
+			tinySTL::swap(_key_cmp, tree._key_cmp);
+		}
+
+		~rb_tree()
+		{
+			clear();
+			put_node(_header);
+		}
+
 	private:
-		iterator __insert(base_ptr x, base_ptr y, const value_type& v);
-		link_type copy(link_type x, link_typep);
-		void erase(link_type x);
+		link_type copy(link_type x, link_type p)
+		{
+			auto ret = clone_node(x);
+			ret->parent = p;
+			if (x->_right)
+				ret->_right = copy(right(x), ret);
+			p = ret;
+			x = left(x);
+			while (x)
+			{
+				auto y = clone_node(x);
+				left(p) = y;
+				y._parent = p;				
+				if (x->_right)
+					y->_right = copy(x->_right, x);
+				p = y;
+				x = left(x);
+			}
+			return ret;
+		}
+
+		void erase(link_type x)
+		{
+			while (x)
+			{
+				erase(x->_right);
+				auto y = left(x);
+				destroy_node(x);
+				x = y;
+			}
+		}
+
+		void clear()//note that header is special
+		{
+			erase(root());
+			leftmost() = _header;
+			rightmost() = _header;
+			root() = nullptr;
+			_size = 0;
+		}
+
 		void init()
 		{
 			_header = get_node();
@@ -191,43 +296,49 @@ namespace tinySTL {
 			leftmost() = _header;
 			rightmost() = _header;
 		}
-	public:
-		rb_tree(const Compare& cmp= Compare())
-			:_size(0), _key_cmp(cmp) {init();}
-		~rb_tree() 
-		{
-			clear();
-			put_node(_header);
-		}
-		//rb_tree<Key, T, KeyOfT, Compare, Alloc>& operator=(const rb_tree<Key, T, KeyOfT, Compare, Alloc>& x);
+		
 	public:
 		Compare key_comp() const { return _key_cmp; }
 		iterator begin() { return leftmost(); }
-		iterator end() { return rightmost(); }
+		iterator end() { return _header; }
 		bool empty() { return !_size; }
 		bool size() { return _size; }
 
 	public:
-		void insert_equal(const value_type& v)
+		template<typename _InputIterator>
+		void insert_equal(_InputIterator first, _InputIterator last)
 		{
-			link_type y = _header;
-			link_type x = root();
+			while (first != last)
+				insert_equal(*first);
+		}
+
+		template<typename _InputIterator>
+		void insert_unique(_InputIterator first, _InputIterator last)
+		{
+			while (first != last)
+				insert_unique(*first);
+		}
+
+		iterator insert_equal(const value_type& v)
+		{
+			auto y = _header;
+			auto x = root();
 			while (x != nullptr) {
 				y = x;
-				x = key_comp(KeyOfT()(v), key(x)) ? left(x) : right(x);
+				x = _key_cmp(KeyOfT()(v), key(x)) ? left(x) : right(x);
 			}
 			return __insert(x, y, v);
 		}
 
-		void insert_unique(const value_type& v) 
+		pair<iterator, bool> insert_unique(const value_type& v)
 		{
-			link_type y = header;
-			link_type x = root();
+			auto y = header;
+			auto x = root();
 			bool comp = true;
 			while (x != nullptr) {
 				y = x;
-				comp = key_comp(KeyOfT()(v), key(x)) ? left(x) : right(x);
-				x = _key_cmp;
+				comp = _key_cmp(KeyOfT()(v), key(x));
+				x = comp ? left(x) : right(x);
 			}
 			auto j = iterator(y);
 			if (comp) {
@@ -236,14 +347,36 @@ namespace tinySTL {
 				else
 					--j;
 			}
-			if (key_comp(key(j.node), KeyOfT()(v)))
+			if(_key_cmp(key(j._node), KeyOfT()(v)))
 				return pair<iterator, bool>(__insert(x, y, v), true);
 			return pair<iterator, bool>(j, false);
 		}
 
-		iterator __insert(base_ptr x, base_ptr y, const value_type& v)
+		iterator insert_unique(iterator pos, const value_type& v)
 		{
-			link_type z;
+			if (pos._node == _header->_left) {
+				if (size() &&//
+					key_comp(KeyOfT()(v), key(pos._node)))
+					return __insert(pos._node, pos._node, v);
+				else
+					return insert_unique(v).first;
+			}
+			else if (pos._node == _header)
+			{
+				if()
+			}
+
+
+		
+		}
+
+
+		iterator __insert(base_ptr _x, base_ptr _y, const value_type& v)
+		{
+			auto x = (link_type)_x;
+			
+			auto y = (link_type)_y;
+			auto z = create_node(v);
 			if (y == _header || x || key_comp(KeyOfT()(v), key(y))) {
 				z = create_node(v);
 				left(y) = z;
@@ -266,9 +399,10 @@ namespace tinySTL {
 			rb_tree_rebalance(z, header->parent);
 			++_size;
 			return iterator(z);
+			
 		}
 
-		void rb_tree_rebalance(Rb_tree_Node_base *x, Rb_tree_Node_base*& root)
+		void rb_tree_rebalance(base_ptr *x, base_ptr*& root)
 		{
 			x->_color = Rb_tree_red;
 			while (x != root && x->_parent->_color == Rb_tree_red) {//¸¸½ÚµãÎªºì
@@ -312,7 +446,7 @@ namespace tinySTL {
 			root->_color = Rb_tree_black;
 		}
 
-		void rb_tree_rotate_left(Rb_tree_Node_base *x, Rb_tree_Node_base*& root)
+		void rb_tree_rotate_left(base_ptr *x, base_ptr*& root)
 		{
 			auto tmp = x->_right;
 			x->_right = tmp->_left;
@@ -329,7 +463,7 @@ namespace tinySTL {
 			x->_parent = tmp;
 		}
 
-		void rb_tree_rotate_right(Rb_tree_Node_base *x, Rb_tree_Node_base*& root)
+		void rb_tree_rotate_right(base_ptr *x, base_ptr*& root)
 		{
 			auto tmp = x->_left;
 			x->_left = tmp->_right;
@@ -344,6 +478,20 @@ namespace tinySTL {
 				x->_parent->_left = tmp;
 			tmp->_right = x;
 			tmp->_parent = x->_parent;
+		}
+
+		iterator find(const Key& k)
+		{
+			auto y = _header; //last node not less than k
+			auto x = root();
+			while (x) {
+				if (!key_comp(key(x), k))
+					x = right(x);
+				else
+					y = x, x = left(x);
+			}
+			auto j = iterator(y);
+			return (j == end() || key_comp(k, key(j._node))) ? end() : j;
 		}
 	};
 }

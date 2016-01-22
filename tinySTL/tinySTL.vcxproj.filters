@@ -21,9 +21,6 @@
     <ClInclude Include="algorithm.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="functional.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="iterator.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -75,12 +72,18 @@
     <ClInclude Include="priority_queue.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="set.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="function.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="queue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="源.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="vector.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

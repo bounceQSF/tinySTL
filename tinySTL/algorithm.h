@@ -2,11 +2,12 @@
 
 
 #include "iterator.h"
-#include "functional.h"
+#include "function.h"
 #include "utility.h"
 #include "typetraits.h"
 
 #include <assert.h>
+#include <memory>
 
 namespace tinySTL {
 	//fill
