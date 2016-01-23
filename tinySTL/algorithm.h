@@ -14,7 +14,7 @@ namespace tinySTL {
 	template<typename _ForwardIterator, typename T>
 	void fill(_ForwardIterator first, _ForwardIterator last, const T& value)
 	{
-		for (; first != end; ++first) {
+		for (; first != last; ++first) {
 			*first = value;
 		}
 	}
@@ -149,7 +149,9 @@ namespace tinySTL {
 	template<typename _InputIterator, typename UnaryPredicate>
 	_InputIterator find_if(_InputIterator first, _InputIterator last, UnaryPredicate pred)
 	{
-		while
+		for (; first != last; ++first)
+			if (pred(*first)) break;
+		return first;
 	}
 
 	//find_if_not
@@ -215,8 +217,8 @@ namespace tinySTL {
 		_ForwardIterator first2, _ForwardIterator last2)
 	{
 		for (; first1 != last1; ++first1) {
-			for (auto it = first2, it != last2; ++iter) {
-				if (if (*first1 == *it)) return first1;
+			for (auto it = first2; it != last2; ++it) {
+				if (*first1 == *it) return first1;
 			}
 		}
 		return last1;
@@ -227,8 +229,8 @@ namespace tinySTL {
 		_ForwardIterator first2, _ForwardIterator last2, UnaryPredicate pred)
 	{
 		for (; first1 != last1; ++first1) {
-			for (auto it = first2, it != last2; ++iter) {
-				if (if (pred(*first1, *it))) return first1;
+			for (auto it = first2; it != last2; ++iter) {
+				if (pred(*first1, *it)) return first1;
 			}
 		}
 		return last1;
@@ -262,24 +264,24 @@ namespace tinySTL {
 	//count
 	//why use difference_type?
 	template<typename _InputIterator, typename T>
-	auto count(_InputIterator first, _InputIterator last, const T& value)->decltype(ret)//c++11?
+	auto count(_InputIterator first, _InputIterator last, const T& value)//c++11?
 	{
-		typename iterator_traits<_InputIterator>::difference_type res = 0;
+		typename iterator_traits<_InputIterator>::difference_type ret = 0;
 		for (; first != last; ++first) {
-			if (*first == value) ++res;
+			if (*first == value) ++ret;
 		}
-		return res;
+		return ret;
 	}
 
 	//count_if
 	template<typename _InputIterator,typename UnaryPredicate>
 	decltype(auto) count_if(_InputIterator first, _InputIterator last, UnaryPredicate pred)//c++14?
 	{
-		typename iterator_traits<_InputIterator>::difference_type res = 0;
+		typename iterator_traits<_InputIterator>::difference_type ret = 0;
 		for (; first != last; ++first) {
-			if (pred(*first)) ++res;
+			if (pred(*first)) ++ret;
 		}
-		return res;
+		return ret;
 	}
 
 	//mismatch
@@ -794,8 +796,8 @@ namespace tinySTL {
 		_InputIterator1 first2, _InputIterator2 last2, Compare cmp)
 	{
 		for (; first1 != last1 && first2 != last2; ++first1, ++first2) {
-			if cmp(*first1, *first2) return true;
-			if cmp(*first2, *first1) return false;
+			if (cmp(*first1, *first2)) return true;
+			if (cmp(*first2, *first1)) return false;
 		}
 		return first1 == last1 && first2 != last2;
 	}

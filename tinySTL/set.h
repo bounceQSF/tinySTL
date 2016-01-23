@@ -8,6 +8,8 @@
 namespace tinySTL {
 	template<typename Key, typename Compare = less<Key>, typename Alloc = alloc>
 	class set {
+		friend bool operator==(const set&, const set&);
+		friend bool operator<(const set&, const set&);
 	public:
 		typedef Key                                     key_type;
 		typedef Key                                     value_type;
@@ -41,14 +43,14 @@ namespace tinySTL {
 
 		template<typename _InputIterator>
 		set(_InputIterator first, _InputIterator last, const Compare& comp)
-			: _tree(cmp) {
+			: _tree(comp) {
 			_tree.insert_unique(first, last);
 		}
 
 		set(const set<Key, Compare, Alloc>& s): _tree(s._tree){}
 		set<Key, Compare, Alloc>& operator=(const set<Key, Compare, Alloc>& s)
 		{
-			_tree = x._tree;
+			_tree = s._tree;
 			return *this;
 		}
 
@@ -58,12 +60,31 @@ namespace tinySTL {
 		iterator end()const { return _tree.end(); }
 		size_type size()const { return _tree.size(); }
 		bool emtpy()const { return _tree.empty(); }
-		size_type size()const { return _tree.size(); }
+		
 		void swap(set<Key, Compare, Alloc>& s) { _tree.swap(s._tree); }
 		
 		pair<iterator, bool>insert(const value_type& x) { return _tree.insert_unique(x); }
-		iterator insert(const value_type& x) { return _tree.insert_unique(x).sec; }
+		iterator insert(iterator pos, const value_type& x) { return _tree.insert_unique(x).second; }
+		void erase(iterator pos) { _tree.erase(pos); }
+		void erase(const value_type x) { _tree.erase(x); }
+		void clear() { _tree.clear(); }
 
+		iterator find(const value_type& x)const { return _tree.find(x); }
+		size_type count(const value_type& x)const { return _tree.count(x); }
+		iterator lower_bound(const value_type& x)const { return _tree.lower_bound(); }
+		iterator upper_bound(const value_type& x)const { return _tree.upper_bound(); }
+		pair<iterator, iterator> equal_range(const value_type& x)const { return _tree.equal_range(); }
 	};
 
+	template<typename Key, typename Compare, typename Alloc>
+	bool operator==(const set<Key, Compare, Alloc>& x, const set<Key, Compare, Alloc>& y)
+	{
+		return x._tree == y._tree;
+	}
+
+	template<typename Key, typename Compare, typename Alloc>
+	bool operator<(const set<Key, Compare, Alloc>& x, const set<Key, Compare, Alloc>& y)
+	{
+		return x._tree < y._tree;
+	}
 }

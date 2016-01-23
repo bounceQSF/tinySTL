@@ -29,6 +29,6 @@ namespace tinySTL {
 		_destroy(first, last, _trivial_destructor());
 	}
 
-	void destroy(char* first, char* last){}
-	void destroy(wchar_t* first, wchar_t* last) {}
+	inline void destroy(char* first, char* last){}
+	inline void destroy(wchar_t* first, wchar_t* last) {}
 }

@@ -23,9 +23,9 @@ namespace tinySTL {
 		bool empty() { return seq.empty(); }
 		bool size() { return seq.size(); }
 		reference front() { return seq.front(); }
-		const_reference front() { return seq.front(); }
+		const_reference front()const { return seq.front(); }
 		reference back() { return seq.back(); }
-		const_reference back() { return seq.back(); }
+		const_reference back()const { return seq.back(); }
 		void push(const value_type& x) { seq.push_back(x); }
 		void pop(const value_type& x) { seq.pop_back(); }
 	};

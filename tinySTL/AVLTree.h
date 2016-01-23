@@ -1,12 +1,13 @@
 #pragma once
 
 #include "alloc.h"
-#include "stack.h"
+//#include "stack.h"
 #include "algorithm.h"
 #include "deque.h"
 
 #include <iostream>
 using std::ostream;
+using std::endl;
 //iterator to be finished & erase operation;
 
 
@@ -22,7 +23,7 @@ namespace tinySTL {
 			T _data;
 			size_t _height;
 			explicit node(T d = T(), node *l =nullptr, node *r = nullptr)
-				:_data(d), _left(l), _right(r){}
+				:_left(l), _right(r), _data(d){}
 		};
 		
 		typedef allocator<node>                       data_allocator;
@@ -48,9 +49,9 @@ namespace tinySTL {
 		void insert(_InputIterator first, _InputIterator last);
 		void erase(const T& val) { erase(val, _root); }
 
-		size_t height() { return getHeight(_root); }
-		size_t size() { return _size; }
-		bool empty() { return !_root; }
+		size_t height()const { return getHeight(_root); }
+		size_t size()const { return _size; }
+		bool empty()const { return !_root; }
 
 	private:
 		node* singleLeftLeftRotate(node*);

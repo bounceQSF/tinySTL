@@ -20,7 +20,7 @@ namespace tinySTL {
 
 	public:
 		priority_queue():seq(){}
-		explicit priority_queue(const Compare& c): seq(), cmp(x){}
+		explicit priority_queue(const Compare& c): seq(), cmp(c){}
 		template<typename _InputIterator>
 		priority_queue(_InputIterator first, _InputIterator last, const Compare &c)
 			:seq(first, last),cmp(c)
