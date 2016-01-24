@@ -229,7 +229,7 @@ namespace tinySTL {
 		_ForwardIterator first2, _ForwardIterator last2, UnaryPredicate pred)
 	{
 		for (; first1 != last1; ++first1) {
-			for (auto it = first2; it != last2; ++iter) {
+			for (auto it = first2; it != last2; ++it) {
 				if (pred(*first1, *it)) return first1;
 			}
 		}
@@ -275,7 +275,7 @@ namespace tinySTL {
 
 	//count_if
 	template<typename _InputIterator,typename UnaryPredicate>
-	decltype(auto) count_if(_InputIterator first, _InputIterator last, UnaryPredicate pred)//c++14?
+	auto count_if(_InputIterator first, _InputIterator last, UnaryPredicate pred)//c++14?
 	{
 		typename iterator_traits<_InputIterator>::difference_type ret = 0;
 		for (; first != last; ++first) {
@@ -331,7 +331,7 @@ namespace tinySTL {
 		auto last2 = first2;
 		advance(last2, last1 - first1);
 		for (auto iter = first1; iter != last1; ++iter) {
-			if (find(first1, last1, *iter) = iter) {
+			if (find(first1, last1, *iter) == iter) {
 				auto n = count(first2, last2, *iter);
 				if (n == 0 || count(iter, last1, *iter) == n)
 					return false;
@@ -351,7 +351,7 @@ namespace tinySTL {
 		advance(last2, last1 - first1);
 		for (auto iter = first1; iter != last1; ++iter)
 		{
-			auto cmp = [&](decltype(*first1) val) {return pred(val, *iter)};//decltype generates reference type
+			auto cmp = [&](decltype(*first1) val) {return pred(val, *iter); };//decltype generates reference type
 			if (find_if(first1, iter, cmp) == iter) {
 				auto n = count_if(first2, last2, cmp);
 				if (n == 0 || n == count_if(iter, last1, cmp)) return false;
@@ -386,7 +386,7 @@ namespace tinySTL {
 		while (first1 != last1)
 		{
 			auto iter1 = first1, iter2 = first2;
-			while (iter1 != last1 && iter != last2) {
+			while (iter1 != last1 && iter2 != last2) {
 				if (pred(*iter1, *iter2)) ++iter1, ++iter2;
 				else break;
 			}
@@ -431,7 +431,7 @@ namespace tinySTL {
 	template<typename _InputIterator, typename Distance>
 	void advance(_InputIterator &it, Distance n)
 	{
-		typedef iterator_traits<_InputIterator>::iterator_category iteraotr_category;
+		typedef typename iterator_traits<_InputIterator>::iterator_category iteraotr_category;
 		_advance(it, n, iteraotr_category());
 	}
 
@@ -476,19 +476,18 @@ namespace tinySTL {
 	template<typename T>
 	const T& median(const T&a, const T&b, const T&c)
 	{
-		if (a < b)
+		if (a < b) {
 			if (b < c)
 				return b;
-			else if (c < a)
+			if (c < a)
 				return a;
-			else
-				return c;
-		else if (a < c)
-			return a;
-		else if (b < c)
 			return c;
-		else
-			return b;
+		}
+		if (a < c)
+			return a;
+		if (b < c)
+			return c;
+		return b;
 	}
 
 	template<typename _RandonIterator, typename T>
@@ -537,7 +536,7 @@ namespace tinySTL {
 		while (value < *iter) {
 			*last = *iter;
 			last = iter;
-			--next;
+			--iter;
 		}
 		*last = value;
 	}
@@ -575,6 +574,9 @@ namespace tinySTL {
 	{
 		for (auto iter = middle; iter != last; ++iter) {
 			if(*iter < *first)
+			{
+				
+			}
 				//pop_heap()
 		}
 	}
@@ -624,12 +626,12 @@ namespace tinySTL {
 		return __copy_dispatch<_InputIterator, _OutputIterator>(first, last, d_first);
 	}
 
-	char* copy(const char* first, const char* last, char* d_first)
+	inline char* copy(const char* first, const char* last, char* d_first)
 	{
 		memmove(d_first, first, last - first);
 		return d_first + (last - first);
 	}
-	wchar_t* copy(const wchar_t* first, const wchar_t* last, wchar_t* d_first)
+	inline wchar_t* copy(const wchar_t* first, const wchar_t* last, wchar_t* d_first)
 	{
 		memmove(d_first, first, sizeof(wchar_t) *(last - first));
 		return d_first + (last - first);
@@ -667,9 +669,9 @@ namespace tinySTL {
 	template<typename _InputIterator, typename _OutputIterator>
 	_OutputIterator __copy(_InputIterator first, _InputIterator last, _OutputIterator d_first, input_iterator_tag)
 	{
-		for (; first != last; ++result, ++first)
-			*result = *first;
-		return result;
+		for (; first != last; ++d_first, ++first)
+			*d_first = *first;
+		return d_first;
 	}
 
 	template<typename _RandomIterator, typename _OutputIterator>
@@ -693,22 +695,22 @@ namespace tinySTL {
 	template<typename _RandomIterator, typename _OutputIterator>
 	_OutputIterator __copy_d(_RandomIterator first, _RandomIterator last, _OutputIterator d_first)
 	{
-		for (auto n = last - first; n > 0; --n, ++result, ++first)
-			*result = *first;
-		return result;
+		for (auto n = last - first; n > 0; --n, ++d_first, ++first)
+			*d_first = *first;
+		return d_first;
 	}
 
 	template<typename T>
 	T* __copy_t(const T* first, const T* last, T* d_first, _true_type)
 	{
 		memmove(d_first, first, (last - first)*sizeof(T));
-		return __copy(first, last, d_first, t());
+		return __copy(first, last, d_first, T());
 	}
 
 	template<typename T>
 	T* __copy_t(const T* first, const T* last, T* d_first, _false_type)
 	{
-		return __copy_d(first, lats, d_first, (ptrdiff_t*)0);
+		return __copy_d(first, last, d_first, static_cast<ptrdiff_t*>(nullptr));
 	}
 
 	//copy_backward
@@ -812,4 +814,152 @@ namespace tinySTL {
 		*it2 = *it1;
 	}
 
+	//upper_bound
+
+	template <typename _ForwardIterator, typename Tp, typename Distance>
+	_ForwardIterator upper_bound(_ForwardIterator first, _ForwardIterator last,
+		const Tp& val)
+	{
+		auto len = distance(first, last);
+		_ForwardIterator middle;
+		while(len)
+		{
+			auto half = len >> 2;
+			middle = first;
+			advance(first, half);
+			if (val < *middle)
+			{
+				len = half;
+			}
+			else {
+				first = middle++;
+				len = len - half - 1;
+			}
+		}
+		return first;
+	}
+
+	template <typename _ForwardIterator, typename T, typename Compare, typename Distance>
+	_ForwardIterator upper_bound(_ForwardIterator first, _ForwardIterator last,
+		const T& val, Compare comp)
+	{
+		auto len = distance(first, last);
+		_ForwardIterator middle;
+		while(len)
+		{
+			auto half = len / 2;
+			middle = first;
+			advance(middle, half);
+			if(comp(val, *middle))
+				len = half;
+			else
+			{
+				first = middle++;
+				len = len - half - 1;
+			}
+		}
+		return first;
+	}
+
+	//lower_range
+	template <typename _ForwardIterator, typename Tp>
+	_ForwardIterator lower_bound(_ForwardIterator first, _ForwardIterator last,
+		const Tp& val)
+	{
+		auto len = distance(first, last);
+		_ForwardIterator middle;
+		while (len)
+		{
+			auto half = len >> 2;
+			middle = first;
+			advance(first, half);
+			if (*middle < val)
+			{
+				first = middle++;
+				len = len - half - 1;
+			}
+			else {
+				len = half;
+			}
+		}
+		return first;
+	}
+
+	template <typename _ForwardIterator, typename T, typename Compare>
+	_ForwardIterator lower_bound(_ForwardIterator first, _ForwardIterator last,
+		const T& val, Compare comp)
+	{
+		auto len = distance(first, last);
+		_ForwardIterator middle;
+		while (len){
+			auto half = len / 2;
+			middle = first;
+			advance(middle, half);
+			if (comp(*middle, val))
+			{
+				first = middle++;
+				len = len - half - 1;
+			}
+			else
+				len = half;
+		}
+		return first;
+	}
+
+	//equal_range
+	template <typename _ForwardIterator, typename T, typename Compare>
+	pair<_ForwardIterator, _ForwardIterator> equal_range(_ForwardIterator first, _ForwardIterator last,
+		const T& val, Compare comp)
+	{
+		auto len = distance(first, last);
+		_ForwardIterator left, right, middle;
+		while (len) {
+			auto half = len / 2;
+			middle = first;
+			advance(middle, half);
+			if (comp(val, *middle))
+				len = half;
+			else if (comp(*middle, val))
+			{
+				first = middle++;
+				len = len - half - 1;
+			}
+			else {
+				left = lower_bound(first, middle, val);
+				advance(first, len);
+				right = upper_bound(++middle, first, val);
+				return{ left, right };
+			}
+		}
+		return{ first, first };
+	}
+
+	template<typename _ForwardIterator, typename T>
+	pair<_ForwardIterator, _ForwardIterator> equal_range(_ForwardIterator first, _ForwardIterator last,
+		const T& val)
+	{
+		auto len = distance(first, last);
+		_ForwardIterator left, right, middle;
+		while(len){
+			auto half = len / 2;
+			middle = first;
+			advance(middle, half);
+			if(val < *middle)
+				len = half;
+			else if(*middle < val)
+			{
+				first = middle++;
+				len = len - half - 1;
+			}
+			else
+			{
+				left = lower_bound(first, middle, val);
+				advance(first, len);
+				right = upper_bound(++middle, first, val);
+				return{ left, right };
+			}
+
+		}
+		return{ first,first };
+	}
 }

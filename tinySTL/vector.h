@@ -1,7 +1,7 @@
 #pragma once
 
 #include "algorithm.h"
-#include "typetraits.h"
+//#include "typetraits.h"
 #include "alloc.h"
 #include "reverseIterator.h"
 #include "uninitializeFunctions.h"
@@ -17,14 +17,15 @@ namespace tinySTL {
 		T* _first;
 		T* _last;
 		T* _free;
-		typedef simple_alloc<value_type, Alloc> data_allocator;
+		typedef simple_alloc<value_type, Alloc>    allocator_type;
+		allocator_type data_allocator;
 
 	public:
 		typedef T                                  value_type;
 		typedef T*                                 iterator;
 		typedef const T*                           const_iterator;
-		typedef reverse_iterator_t<T*>             iterator;
-		typedef reverse_iterator_t<const T*>       const_iterator;
+		//typedef reverse_iterator_t<T*>             iterator;
+		//typedef reverse_iterator_t<const T*>       const_iterator;
 		typedef iterator                           pointer;
 		typedef T&                                 reference;
 		typedef const T&                           const_reference;
@@ -107,36 +108,36 @@ namespace tinySTL {
 
 		//iterator
 		iterator begin() { return _first; }
-		const_iterator begin() { return (_first); }
-		const_iterator cbegin() { return (_first); }
-		iterator end() { return (last_); }
-		const_iterator end()const { return (last_); }
-		const_iterator cend()const { return (last_); }
-		reverse_iterator rbegin() { return reverse_iterator(finish_); }
-		const_reverse_iterator crbegin()const { return const_reverse_iterator(finish_); }
-		reverse_iterator rend() { return reverse_iterator(start_); }
-		const_reverse_iterator crend()const { return const_reverse_iterator(start_); }
+		const_iterator begin()const { return (_first); }
+		const_iterator cbegin()const { return (_first); }
+		iterator end() { return (_first); }
+		const_iterator end()const { return (_last); }
+		const_iterator cend()const { return (_last); }
+		//reverse_iterator rbegin() { return reverse_iterator(finish_); }
+		//const_reverse_iterator crbegin()const { return const_reverse_iterator(finish_); }
+		//reverse_iterator rend() { return reverse_iterator(start_); }
+		//const_reverse_iterator crend()const { return const_reverse_iterator(start_); }
 
 		//size
-		difference_type size()const { return _last - _first; }
-		difference_type capacity()const { return _free - _first; }
-		bool empty()const { return start_ == finish_; }
+		size_type size()const { return _last - _first; }
+		size_type capacity()const { return _free - _first; }
+		bool empty()const { return _first == _last; }
 		void resize(size_type n, const value_type& value)
 		{
-			if (n < size()) {
-				dataAllocator::destroy(_first + n, _last);
-				_last = first + n;
+			if (n <= size()) {
+				allocator_type::destroy(_first + n, _last);
+				_last = _first + n;
 			}
 			if (n > size()) {
 				if (n <= capacity()) {
 					auto diff = n - size();
-					_last = _uninitialized_fill_n(_first, n, value);
+					_last = _uninitialized_fill_n(_last, diff, value);
 				}
 				else {
 					auto diff = n - size();
 					auto len = getNewCapacity(diff);
-					auto newfirst = dataAllocator::allocate(len);
-					auto res = _uninitialized_copy(_first, _last, newstart);
+					auto newfirst =  allocator_type::allocate(len);
+					auto res = _uninitialized_copy(_first, _last, newfirst);
 					res = _uninitialized_fill_n(res, n, value);
 					destroyAndDeallocateAll();
 					_first = newfirst;
@@ -144,7 +145,6 @@ namespace tinySTL {
 					_free = _first + len;
 				}
 			}
-
 		}
 
 		void reserve(size_type n)
@@ -152,16 +152,17 @@ namespace tinySTL {
 			if (n <= capacity()) return;
 			auto diff = n - size();
 			auto len = getNewCapacity(diff);
-			auto newfirst = dataAllocator::Allocate(len);
-			auto res = _uninitialized_copy(_first, _last, newstart);
+			auto newfirst =  allocator_type::Allocate(len);
+			auto res = _uninitialized_copy(_first, _last, newfirst);
 			destroyAndDeallocateAll();
 			_first = newfirst;
 			_last = res;
 			_free = _first + len;
 		}
 
-		void shrink_to_fit()
+		inline void shrink_to_fit()
 		{
+			
 		}
 
 		//item
@@ -174,7 +175,7 @@ namespace tinySTL {
 		//modify
 		void clear()
 		{
-			dataAllocator::destroy(_first, _last);
+			 allocator_type::destroy(_first, _last);
 			_last = _first;
 		}
 
@@ -183,7 +184,7 @@ namespace tinySTL {
 			if (this != &v) {
 				tinySTL::swap(_first, v._first);
 				tinySTL::swap(_last, v._last);
-				tinySTL::swap(_finish, v._finish);
+				tinySTL::swap(_free, v._free);
 			}
 		}
 		
@@ -213,19 +214,34 @@ namespace tinySTL {
 		iterator insert(const_iterator position, const value_type& val)
 		{
 			const auto index = position - _first;
-			isnert(postion, 1, val);
+			if(_last == _free && position == end())
+			{
+				construct(end(), val);
+			}
+			insert(position, 1, val);
 			return begin() + index;
 		}
 
-		iterator insert(const_iterator position, size_type n, const value_type& val)
+		iterator insert(const_iterator position)
+		{
+			const auto index = position - _first;
+			if (_last == _free && position == end())
+			{
+				construct(end());
+			}
+			insert(position, 1);
+			return begin() + index;
+		}
+
+		void insert(const_iterator position, size_type n, const value_type& val)
 		{	
-			insert_aux(position, n, val, typename std::is_integral<size_type>::type());
+			insert_aux(position, n, val, std::is_integral<size_type>::type());
 		}
 
 		template <typename _InputIterator>
-		iterator insert(const_iterator position, _InputIterator first, _InputIterator last)
+		void insert(const_iterator position, _InputIterator first, _InputIterator last)
 		{
-			insert_aux(position, _first, _last, typename std::is_integral<_InputIterator>::type());
+			insert_aux(position, _first, _last, std::is_integral<_InputIterator>::type());
 		}
 
 		iterator erase(const_iterator position)
@@ -239,24 +255,24 @@ namespace tinySTL {
 		}
 
 		//alloc
-		Alloc get_allocator() { return dataAllocator; }
+		Alloc get_allocator() { return  data_allocator; }
 	private:
 		void destroyAndDeallocateAll()
 		{
-			dataAllocator::destroy(_first, _last);
-			dataAllocator::deallocate(_first, _free);
+			 allocator_type::destroy(_first, _last);
+			 allocator_type::deallocate(_first, _free);
 		}
 
 		void allocateAndFillN(const size_type& n, const value_type& value)
 		{
-			_first = dataAllocator::allocate(n);
+			_first =  allocator_type::allocate(n);
 			_last = _free =_uninitialized_fill_n(_first, n, value);
 		}
 
 		template<typename InputIterator>
 		void allocateAndCopy(InputIterator first, InputIterator last)
 		{
-			_first = dataAllocator::allocate(n);
+			_first =  allocator_type::allocate(last - first);
 			_last = _free = _uninitialized_copy(first, last, _first);
 		}
 
@@ -278,7 +294,7 @@ namespace tinySTL {
 		{
 			auto diffNow = _free - _last;
 			auto diffIns = last - first;
-			if (diffNow >= diffIns)
+			if (diffNow >= diffIns) {
 				if (_last - position > diffIns) {
 					_uninitialized_copy(_last - diffIns, _last, _last);
 					copy_backward(position, _last - diffIns, _last);
@@ -290,6 +306,7 @@ namespace tinySTL {
 					copy(first, first + (_last - position), position);
 				}
 				_last += diffIns;
+			}
 			else
 				reallocateAndCopy(position, first, last);
 		}
@@ -297,7 +314,7 @@ namespace tinySTL {
 		template<typename Integer>
 		void insert_aux(iterator position, Integer n, const value_type& value, std::true_type)
 		{
-			auto diffLeft = _last - _finish;
+			auto diffLeft = _free - _last;
 			if (n <= diffLeft) {
 				for (auto tmp = _last - 1; tmp >= position; --tmp) {
 					construct(tmp + n, *tmp);
@@ -313,12 +330,12 @@ namespace tinySTL {
 		template<typename InputIterator>
 		void reallocateAndCopy(iterator position, InputIterator first, InputIterator last)
 		{
-			auto len = getNewCapacity(diffIns);
-			auto newFirst = dataAllocator::allocate(len);
+			auto len = getNewCapacity(last- first);
+			auto newFirst =  allocator_type::allocate(len);
 			auto newFree = newFirst + len;
 			auto newLast = _uninitialized_copy(_first, position, newFirst);
 			newLast = _uninitialized_copy(first, last, newLast);
-			newLast = _uninitialized_copy(pos, _last, newLast);
+			newLast = _uninitialized_copy(position, _last, newLast);
 			destroyAndDeallocateAll();
 			_first = newLast;
 			_last = newLast;
@@ -328,40 +345,38 @@ namespace tinySTL {
 		void reallocateAndFillN(iterator position, const size_type& n, const value_type& val)
 		{
 			auto len = getNewCapacity(n);
-			auto newFirst = dataAllocator::allocate(len);
-			auto newFREE = newFirst + len;
+			auto newFirst =  allocator_type::allocate(len);
+			auto newFree = newFirst + len;
 			auto newLast = _uninitialized_copy(_first, position, newFirst);
 			newLast = _uninitialized_fill_n(newLast, n, val);
-			newLast = _uninitialized_copy(pos, _last, newLast);
+			newLast = _uninitialized_copy(position, _last, newLast);
 			destroyAndDeallocateAll();
 			_first = newLast;
 			_last = newLast;
 			_free = newFree;
 		}
 
-		size_type getNewCapacity(size_type len = capacity())const
+		size_type getNewCapacity(size_type len = 0)const
 		{
 			auto cap = capacity();
 			auto ret = max(cap, len);
 			return cap ? (2 * ret) : (len ? len : 1);
-		}
-
-	public:
-		template<typename T, typename Alloc>
-		friend bool operator == (const vector<T, Alloc>& v1, const vector<T, Alloc>& v2)
-		{
-			if (v1.size() != v2.size())
-				return false;
-			for (auto iter1 = v1.begin(), iter2 = v2.begin(); iter1 != v2.end(); ++iter1, ++iter2)
-				if (*iter1 != *iter2)
-					return false;
-			return true;
-		}
-
-		template<typename T, typename Alloc>
-		friend bool operator != (const vector<T, Alloc>& v1, const vector<T, Alloc>& v2)
-		{
-			return !(v1 == v2);
-		}
+		}		
 	};
+	template<typename T, typename Alloc>
+	bool operator == (const vector<T, Alloc>& v1, const vector<T, Alloc>& v2)
+	{
+		if (v1.size() != v2.size())
+			return false;
+		for (auto iter1 = v1.begin(), iter2 = v2.begin(); iter1 != v2.end(); ++iter1, ++iter2)
+			if (*iter1 != *iter2)
+				return false;
+		return true;
+	}
+
+	template<typename T, typename Alloc>
+	bool operator != (const vector<T, Alloc>& v1, const vector<T, Alloc>& v2)
+	{
+		return !(v1 == v2);
+	}
 }

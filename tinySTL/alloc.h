@@ -3,16 +3,16 @@
 #include <new>
 
 #include "algorithm.h"
-#include "construct.h"
+//#include "construct.h"
 
 namespace tinySTL {
 	//simple_alloc
 	template<typename T, typename Alloc>
 	class simple_alloc {
-		static T* allocate(size_t n) { return n ? (T*)Alloc::allocate(n * sizeof(T)) : nullptr; }
-		static T* allocate() { return (T*)Alloc::allocate(sizeof(T)); }
-		static T* deallocate(T* ptr, size_t n) { if (n) Alloc::deallocate(ptr, n * sizeof(T)); }
-		static T* deallocate(T* ptr) { Alloc::deallocate(ptr, sizeof(T)); }
+		static T* allocate(size_t n) { return n ? static_cast<T*>(Alloc::allocate(n * sizeof(T))) : nullptr; }
+		static T* allocate() { return static_cast<T*>(Alloc::allocate(sizeof(T))); }
+		static void deallocate(T* ptr, size_t n) { if (n) Alloc::deallocate(ptr, n * sizeof(T)); }
+		static void deallocate(T* ptr) { Alloc::deallocate(ptr, sizeof(T)); }
 	};
 
 	//malloc_alloc_template
@@ -34,7 +34,7 @@ namespace tinySTL {
 			while (true) {
 				if (!malloc_alloc_oom_handler) { assert(0); }
 				malloc_alloc_oom_handler();
-				auto ret = reallocate(p, n);
+				auto ret = reallocate(p, 0, n);//?
 				if (ret) return ret;
 			}
 		}
@@ -51,16 +51,16 @@ namespace tinySTL {
 
 		}
 
-		static void* deallocate(void* ptr, size_t)
+		static void deallocate(void* ptr, size_t)
 		{
 			free(ptr);
 		}
 
 		static void* reallocate(void* ptr, size_t, size_t new_sz)
 		{
-			auto ret = realloc(n);
+			auto ret = realloc(ptr, new_sz);//?
 			if (!ret)
-				ret = oom_realloc(n);
+				ret = oom_realloc(ptr, new_sz);
 			return ret;
 		}
 
@@ -87,7 +87,7 @@ namespace tinySTL {
 			char client[1];
 		};
 
-		static obj* volatile free_list[ENFreeLists::NFREELISTS];
+		static obj* volatile free_list[NFREELISTS];
 
 	private:
 		static char *start_free;
@@ -113,17 +113,17 @@ namespace tinySTL {
 			if (nobjs == 1)
 				return chunk;
 			my_free_list = free_list + FREELIST_INDEX(n);
-			*my_free_list = next_obj = (obj*)(chunk + n);
+			*my_free_list = next_obj = static_cast<obj*>(chunk + n);
 			for (auto i = 1;; ++i) {
 				cur_obj = next_obj;
-				next_obj = (obj*)((char*)cur_obj + n);
+				next_obj = static_cast<obj*>(static_cast<char*>(cur_obj) + n);
 				if (i == nobjs - 1) {
 					cur_obj->next = nullptr;
 					break;
 				}
 				else cur_obj->next = next_obj;
 			}
-			return (obj*)chunk;
+			return static_cast<obj*>(chunk);
 		}
 
 		static char* chunk_alloc(size_t size, size_t nobjs) 
@@ -147,10 +147,10 @@ namespace tinySTL {
 				auto bytes_to_get = 2 * total_bytes + ROUND_UP(heap_size >> 4);// I cannot fully understand why
 				if (bytes_left > ALIGN) {
 					auto my_free_list = free_list + FREELIST_INDEX(bytes_left);
-					((obj*)start_free)->next = *my_free_list;
-					*my_free_list = (obj*)start_free;
+					static_cast<obj*>(start_free)->next = *my_free_list;
+					*my_free_list = static_cast<obj*>(start_free);
 				}
-				start_free = (char*)malloc(bytes_to_get);
+				start_free = static_cast<char*>(malloc(bytes_to_get));
 				if (!start_free) {
 					obj *volatile* my_free_list, *p;
 					for (auto i = size; i <= MAXBYTES; i += ALIGN) {
@@ -158,13 +158,13 @@ namespace tinySTL {
 						p = *my_free_list;
 						if (!p) {
 							*my_free_list = p->next;
-							start_free = (char*)p;
+							start_free = static_cast<char*>(p);
 							end_free = start_free + i;
 							return (chunk_alloc(size, nobjs));
 						}
 					}
 					end_free = nullptr;
-					start_free = (char*)malloc_alloc::allocate(bytes_to_get);
+					start_free = static_cast<char*>(malloc_alloc::allocate(bytes_to_get));
 					//why not apply for less memory? size instead
 				}
 				heap_size = bytes_to_get;
@@ -198,16 +198,16 @@ namespace tinySTL {
 			}
 			obj* volatile *my_free_list;
 			my_free_list = free_list + FREELIST_INDEX(bytes);
-			auto ret = (obj*)ptr;
-			ptr->next = *my_free_list;
-			*my_free_list = ptr;
+			auto ret = static_cast<obj*>(ptr);
+			ret->next = *my_free_list;
+			*my_free_list = ret;
 		}
 
 		static void* reallocate(void* ptr, size_t old_sz, size_t new_sz)
 		{
-			if (old_sz > MAXBYTES && new_size > MAXBYTES)
-				return malloc_alloc::allocate(bytes);
-			if (ROUND_UP(old_size) == ROUND_UP(old_size)) return ptr;
+			if (old_sz > MAXBYTES && new_sz > MAXBYTES)
+				return malloc_alloc::reallocate(ptr, old_sz, new_sz);
+			if (ROUND_UP(old_sz) == ROUND_UP(old_sz)) return ptr;
 			auto size = min(old_sz, new_sz);
 			auto ret = allocate(new_sz);
 			memcpy(ret, ptr, size);
@@ -226,7 +226,7 @@ namespace tinySTL {
 	size_t default_alloc_template<threads, inst>::heap_size = 0;
 
 	template<bool threads, int inst>
-	typename default_alloc_template<threads, inst>::obj* volatile default_alloc_template<threads, inst>::free_list[NFREELISTS] = { nullptr };
+	typename default_alloc_template<threads, inst>::obj* volatile free_list[default_alloc_template<threads, inst>::NFREELISTS] = { nullptr };
 
 	typedef default_alloc_template<true, 0> alloc;
 	typedef default_alloc_template<false, 0> single_client_alloc;
@@ -235,7 +235,7 @@ namespace tinySTL {
 	template<typename T>
 	inline T* allocate(ptrdiff_t size, T*) {
 		//set_new_handler(nullptr);
-		T* tmp = (T*)(::operator new((size_t)(sizeof(T))));
+		T* tmp = static_cast<T*>(::operator new(static_cast<size_t>(sizeof(T))));
 		if (!tmp) {
 			assert(0);
 		}
@@ -249,6 +249,7 @@ namespace tinySTL {
 
 	template<typename T>
 	class allocator {
+		typedef alloc                              _alloc;
 	public:
 		typedef T                                  value_type;
 		typedef T*                                 pointer;
@@ -258,19 +259,27 @@ namespace tinySTL {
 		typedef size_t                             size_type;
 		typedef ptrdiff_t                          difference_type;
 
-		/*static void deallocate(T* buffer)
+		template<typename T1>
+		struct rebind
 		{
-			::operator delete(buffer);
-		}*/
+			typedef allocator<T1> other;
+		};
+
+		allocator()noexcept{}
+		allocator(const allocator& a)noexcept{}
+		template<typename T1>
+		allocator(const allocator<T1>& a)noexcept{}
+		~allocator()noexcept {}
 
 		static pointer allocate(size_type n = 1)
 		{
+			return n ? static_cast<pointer>(Alloc::)
 			//if (!n) return nullptr;
 			//return static_cast<T*>(alloc::allocate(sizeof(T) * n));
-			return  tinySTL::allocate((difference_type)n, (pointer)nullptr);
+			return  tinySTL::allocate(static_cast<difference_type>(n), static_cast<pointer>(nullptr));
 		}
 
-		static void deallocate(pointer p) { tinySTL::deallocate(p); }
+		static void deallocate(pointer p) { underlying_alloc.deallocate; }
 		static void destroy(pointer first, pointer last)
 		{
 			for (; first != last; ++first) {
@@ -283,7 +292,7 @@ namespace tinySTL {
 			ptr->~T();			
 		}
 
-		static void construct(pointer fisrt, const value_type& value)
+		static void construct(pointer ptr, const value_type& value)
 		{
 			new(ptr)T(value);
 		}
@@ -293,7 +302,89 @@ namespace tinySTL {
 			new(ptr)T();
 		}
 
-		static pointer address(reference x) { return (pointer)&x; }
-		static const_pointer address(const_reference x) { return (const_pointer)&x; }
+		static pointer address(reference x) { return static_cast<pointer>(&x); }
+		static const_pointer address(const_reference x) { return static_cast<const_pointer>(&x); }
 	};
+
+	template <class T, class Allocator>
+	struct alloc_traits
+	{
+		static const bool _S_instanceless = false;
+		typedef typename Allocator::__STL_TEMPLATE rebind<T>::other
+			allocator_type;
+	};
+
+	template <class T, class Allocator>
+	const bool alloc_traits<T, Allocator>::_S_instanceless;
+
+	// The version for the default allocator.
+
+	template <class T, class T1>
+	struct alloc_traits<T, allocator<T1> >
+	{
+		static const bool _S_instanceless = true;
+		typedef simple_alloc<T, alloc> _Alloc_type;
+		typedef allocator<T> allocator_type;
+	};
+
+	// Versions for the predefined SGI-style allocators.
+
+	template <class T, int inst>
+	struct alloc_traits<T, malloc_alloc_template<inst> >
+	{
+		static const bool _S_instanceless = true;
+		typedef simple_alloc<T, malloc_alloc_template<inst> > _Alloc_type;
+		typedef Allocator<T, malloc_alloc_template<inst> > allocator_type;
+	};
+
+	template <class T, bool __threads, int inst>
+	struct alloc_traits<T, default_alloc_template<__threads, inst> >
+	{
+		static const bool _S_instanceless = true;
+		typedef simple_alloc<T, default_alloc_template<__threads, inst> >
+			_Alloc_type;
+		typedef Allocator<T, default_alloc_template<__threads, inst> >
+			allocator_type;
+	};
+
+	template <class T, class _Alloc>
+	struct alloc_traits<T, debug_alloc<_Alloc> >
+	{
+		static const bool _S_instanceless = true;
+		typedef simple_alloc<T, debug_alloc<_Alloc> > _Alloc_type;
+		typedef Allocator<T, debug_alloc<_Alloc> > allocator_type;
+	};
+
+	// Versions for the Allocator adaptor used with the predefined
+	// SGI-style allocators.
+
+	template <class T, class T1, int inst>
+	struct alloc_traits<T,
+		Allocator<T1, malloc_alloc_template<inst> > >
+	{
+		static const bool _S_instanceless = true;
+		typedef simple_alloc<T, malloc_alloc_template<inst> > _Alloc_type;
+		typedef Allocator<T, malloc_alloc_template<inst> > allocator_type;
+	};
+
+	template <class T, class T1, bool __thr, int inst>
+	struct alloc_traits<T,
+		Allocator<T1,
+		default_alloc_template<__thr, inst> > >
+	{
+		static const bool _S_instanceless = true;
+		typedef simple_alloc<T, default_alloc_template<__thr, inst> >
+			_Alloc_type;
+		typedef Allocator<T, default_alloc_template<__thr, inst> >
+			allocator_type;
+	};
+
+	template <class T, class T1, class _Alloc>
+	struct alloc_traits<T, Allocator<T1, debug_alloc<_Alloc> > >
+	{
+		static const bool _S_instanceless = true;
+		typedef simple_alloc<T, debug_alloc<_Alloc> > _Alloc_type;
+		typedef Allocator<T, debug_alloc<_Alloc> > allocator_type;
+	};
+
 }
