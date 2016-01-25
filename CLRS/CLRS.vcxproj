@@ -18,45 +18,10 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="algorithm.h" />
-    <ClInclude Include="alloc.h" />
-    <ClInclude Include="AVLTree.h" />
-    <ClInclude Include="construct.h" />
-    <ClInclude Include="deque.h" />
-    <ClInclude Include="function.h" />
-    <ClInclude Include="hashtable.h" />
-    <ClInclude Include="hash_function.h" />
-    <ClInclude Include="hash_map.h" />
-    <ClInclude Include="hash_multimap.h" />
-    <ClInclude Include="hash_multiset.h" />
-    <ClInclude Include="hash_set.h" />
-    <ClInclude Include="heap.h" />
-    <ClInclude Include="iterator.h" />
-    <ClInclude Include="list.h" />
-    <ClInclude Include="map.h" />
-    <ClInclude Include="multihash.h" />
-    <ClInclude Include="multiset.h" />
-    <ClInclude Include="priority_queue.h" />
-    <ClInclude Include="queue.h" />
-    <ClInclude Include="rbtree.h" />
-    <ClInclude Include="reverseIterator.h" />
-    <ClInclude Include="set.h" />
-    <ClInclude Include="stack.h" />
-    <ClInclude Include="string.h" />
-    <ClInclude Include="testAVL.h" />
-    <ClInclude Include="typetraits.h" />
-    <ClInclude Include="uninitializeFunctions.h" />
-    <ClInclude Include="utility.h" />
-    <ClInclude Include="vector.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="源.cpp" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{7329F46A-6DA1-4F14-A7AD-588596330D5B}</ProjectGuid>
+    <ProjectGuid>{3FF033F9-5660-4CF7-81CA-89C198DE2C74}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>tinySTL</RootNamespace>
+    <RootNamespace>CLRS</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -124,15 +89,11 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Bscmake>
-      <PreserveSbr>true</PreserveSbr>
-    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -184,6 +145,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -289,8 +289,7 @@ namespace tinySTL {
 			}
 		}
 
-		template<typename _InputIterator>
-		void erase(_InputIterator first, _InputIterator last)
+		void erase(iterator first, iterator last)
 		{
 			if (first == begin() && last == end())
 				clear();
@@ -330,15 +329,13 @@ namespace tinySTL {
 		bool size()const { return _size(); }
 
 	public:
-		template<typename _InputIterator>
-		void insert_equal(_InputIterator first, _InputIterator last)
+		void insert_equal(iterator first, iterator last)
 		{
 			while (first != last)
 				insert_equal(*first);
 		}
 
-		template<typename _InputIterator>
-		void insert_unique(_InputIterator first, _InputIterator last)
+		void insert_unique(iterator first, iterator last)
 		{
 			while (first != last)
 				insert_unique(*first);

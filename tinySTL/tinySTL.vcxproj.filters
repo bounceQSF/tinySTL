@@ -102,6 +102,12 @@
     <ClInclude Include="hash_function.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="hash_multiset.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="hash_multimap.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="源.cpp">

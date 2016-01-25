@@ -276,8 +276,7 @@ namespace tinySTL
 			return insert_unique_aux(obj);
 		}
 
-		template<typename _InputIterator>
-		void insert_unique(_InputIterator first, _InputIterator last)
+		void insert_unique(iterator first, iterator last)
 		{
 			//no random_access
 			while(first != last)
@@ -290,8 +289,7 @@ namespace tinySTL
 			return insert_equal_aux(obj);
 		}
 
-		template<typename _InputIterator>
-		void insert_equal(_InputIterator first, _InputIterator last)
+		void insert_equal(iterator first, iterator last)
 		{
 			while (first != last)
 				insert_equal(*first++);
@@ -302,11 +300,11 @@ namespace tinySTL
 			auto n = bkt_num(obj);
 			auto first = _buckets[n];
 			for (auto pos = first; pos; pos = pos->next)
-				if (equals(get_key(pos->_value), get_key(obj)))
+				if (_equals(get_key(pos->_value), get_key(obj)))
 					return{ iterator(pos, this), false };
 			auto tmp = new node(obj);
 			tmp->next = first;
-			_buckets[n] = tmp->next;
+			_buckets[n] = tmp;
 			++_num_elements;
 			return{ iterator(tmp, this), true };
 		}
@@ -316,18 +314,18 @@ namespace tinySTL
 			auto n = bkt_num(obj);
 			auto first = _buckets[n];
 			for (auto pos = first; pos; pos = pos->next)
-				if (equals(get_key(pos->_value), get_key(obj)))
+				if (_equals(get_key(pos->_value), get_key(obj)))
 				{
 					auto tmp = new_node(obj);
 					tmp->next = first;
-					_buckets[n] = tmp->next;
+					_buckets[n] = tmp;
 					++_num_elements;
 					return iterator(tmp, this);
 				}
 					
 			auto tmp = new node(obj);
 			tmp->next = first;
-			_buckets[n] = tmp->next;
+			_buckets[n] = tmp;
 			++_num_elements;
 			return iterator(tmp, this);
 		}
@@ -358,9 +356,128 @@ namespace tinySTL
 			}
 		}
 
-		/*void find(const key_type)
-		{}*/
+		iterator find(const key_type& key)
+		{
+			auto n = btk_num_key(key);
+			node* first;
+			for (first = _buckets[n]; first && !_equals(_get_key(n->_value), key); first = first->next){}
+			return iterator(first, this);
+		}
 
+		size_type erase(const key_type& key)
+		{
+			auto tmp = btk_num_key(key);
+			auto n = _buckets[tmp];
+			size_type cnt = 0;
+			if(n)
+			{
+				auto cur = n;
+				auto cnext = n->next;
+				while(cnext)
+				{
+					if (_equals(_get_key(cnext->_value), key))
+					{
+						cur->next = cnext->next;
+						destroy_node(cnext);
+						cnext = cur->next;
+						--_num_elements;
+						++cnt;
+					}
+					else
+					{
+						cur = cnext;
+						cnext = cnext->next;
+					}
+				}
+				if(_equals(_get_key(n->_value), key))
+				{
+					_buckets[tmp] = n->next;
+					destroy_node(n);
+					--_num_elements;
+					++cnt;
+				}
+			}
+			return cnt;
+		}
+
+		void erase(const iterator& it)
+		{
+			auto p = it._cur;
+			if(p)
+			{
+				const auto n = bkt_num(p->_value);
+				auto cur = _buckets[n];
+				if(p == cur)
+				{
+					_buckets[n] = cur->next;
+					destroy_node(cur);
+					--_num_elements;
+				}
+				else
+				{
+					auto _next = cur->next;
+					while(_next)
+					{
+						if(_next == p)
+						{
+							cur->next = _next->next;
+							destroy_node(cur);
+							--_num_elements;
+						}
+						else
+						{
+							cur = _next;
+							_next = _next->next;
+						}
+					}
+				}
+			}
+		}
+
+		
+		void erase(iterator first, iterator last)
+		{
+			if (first == begin() && last == end())
+				clear();
+			while(first != last)
+			{
+				erase(first);
+			}
+		}
+
+		pair<iterator, iterator> equal_range(const key_type& key)
+		{
+			const auto n = bkt_num(key);
+			for (auto first = _buckets[n]; first; first = first->next)
+				if(_equals(first->_value), key)
+				{
+					for (auto cur = first->next; cur; cur = cur->next)
+						if (_equals(cur->_value), key)
+							return{ const_iterator(first, this), const_iterator(cur, this) };
+					for (auto m = n + 1; m < _buckets.size(); ++m)
+						if (_buckets[m])
+							return{ const_iterator(first, this), const_iterator(_buckets[m], this) };
+					return{ iterator(first, this), end() };
+				}
+			return{ end(), end() };
+		}
+
+		pair<const_iterator, const_iterator> equal_range(const key_type& key)const
+		{
+			const auto n = bkt_num(key);
+			for (auto first = _buckets[n]; first; first = first->next)
+				if (_equals(first->_value), key)
+				{
+					for (auto cur = first->next; cur; cur = cur->next)
+						if (_equals(cur->_value), key)
+							return{ iterator(first, this), iterator(cur, this) };
+					for (auto m = n + 1; m < _buckets.size(); ++m)
+						if (_buckets[m])
+							return{ iterator(first, this), iterator(_buckets[m], this) };
+					return{ const_iterator(first, this), end() };
+				}
+			return{ end(), end() };
+		}
 
 		size_type bkt_num(const value_type& obj, size_type n)const
 		{
