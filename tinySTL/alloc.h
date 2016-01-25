@@ -233,21 +233,6 @@ namespace tinySTL {
 
 	//allocator
 	template<typename T>
-	inline T* allocate(ptrdiff_t size, T*) {
-		//set_new_handler(nullptr);
-		T* tmp = static_cast<T*>(::operator new(static_cast<size_t>(sizeof(T))));
-		if (!tmp) {
-			assert(0);
-		}
-		return tmp;
-	}
-
-	template<typename T>
-	inline void deallocate(T* buffer) {
-		::operator delete(buffer);
-	}
-
-	template<typename T>
 	class allocator {
 		typedef alloc                              _alloc;
 	public:
@@ -271,25 +256,64 @@ namespace tinySTL {
 		allocator(const allocator<T1>& a)noexcept{}
 		~allocator()noexcept {}
 
-		static pointer allocate(size_type n = 1)
+		static pointer allocate(size_type n)
 		{
-			return n ? static_cast<pointer>(Alloc::)
-			//if (!n) return nullptr;
-			//return static_cast<T*>(alloc::allocate(sizeof(T) * n));
-			return  tinySTL::allocate(static_cast<difference_type>(n), static_cast<pointer>(nullptr));
+			return n ? static_cast<pointer>(_alloc::allocate(n * sizeof(T))) : nullptr;
 		}
 
-		static void deallocate(pointer p) { underlying_alloc.deallocate; }
-		static void destroy(pointer first, pointer last)
+		static void deallocate(pointer p, size_type n)
 		{
-			for (; first != last; ++first) {
-				first->~T();
-			}
+			_alloc::deallocate(p, n*sizeof(T));
 		}
 
+		static void construct(pointer ptr, const value_type& value)
+		{
+			new(ptr)T(value);
+		}
+	
 		static void destroy(pointer ptr)
 		{
 			ptr->~T();			
+		}
+
+		static pointer address(reference x) { return static_cast<pointer>(&x); }
+		static const_pointer address(const_reference x) { return static_cast<const_pointer>(&x); }
+	};
+
+	template<typename T, typename Alloc>
+	class _allocator {
+		Alloc _underlying_alloc;
+	public:
+		typedef T                                  value_type;
+		typedef T*                                 pointer;
+		typedef const T*                           const_pointer;
+		typedef T&                                 reference;
+		typedef const T&                           const_reference;
+		typedef size_t                             size_type;
+		typedef ptrdiff_t                          difference_type;
+
+		template<typename T1>
+		struct rebind
+		{
+			typedef _allocator<T1, Alloc> other;
+		};
+
+		_allocator()noexcept {}
+		_allocator(const _allocator& a)noexcept
+			:_underlying_alloc(a._underlying_alloc) {}
+		template<typename T1>
+		_allocator(const _allocator<T1, Alloc>& a)noexcept
+			: _underlying_alloc(a._underlying_alloc) {}
+		~_allocator()noexcept {}
+
+		static pointer allocate(size_type n)
+		{
+			return n ? static_cast<pointer>(_underlying_alloc.allocate(n * sizeof(T))) : nullptr;
+		}
+
+		static void deallocate(pointer p, size_type n)
+		{
+			_underlying_alloc.deallocate(p, n*sizeof(T));
 		}
 
 		static void construct(pointer ptr, const value_type& value)
@@ -297,94 +321,92 @@ namespace tinySTL {
 			new(ptr)T(value);
 		}
 
-		static void construct(pointer ptr)
+		static void destroy(pointer ptr)
 		{
-			new(ptr)T();
+			ptr->~T();
 		}
 
 		static pointer address(reference x) { return static_cast<pointer>(&x); }
 		static const_pointer address(const_reference x) { return static_cast<const_pointer>(&x); }
 	};
 
-	template <class T, class Allocator>
+	template <typename T, typename Allocator>
 	struct alloc_traits
 	{
 		static const bool _S_instanceless = false;
-		typedef typename Allocator::__STL_TEMPLATE rebind<T>::other
+		typedef typename _allocator<T, Allocator>::rebind::other
 			allocator_type;
 	};
 
-	template <class T, class Allocator>
+	template <typename T, typename Allocator>
 	const bool alloc_traits<T, Allocator>::_S_instanceless;
 
 	// The version for the default allocator.
 
-	template <class T, class T1>
+	template <typename T, typename T1>
 	struct alloc_traits<T, allocator<T1> >
 	{
 		static const bool _S_instanceless = true;
-		typedef simple_alloc<T, alloc> _Alloc_type;
+		typedef simple_alloc<T, alloc> _alloc_type;
 		typedef allocator<T> allocator_type;
 	};
 
 	// Versions for the predefined SGI-style allocators.
 
-	template <class T, int inst>
+	template <typename T, int inst>
 	struct alloc_traits<T, malloc_alloc_template<inst> >
 	{
 		static const bool _S_instanceless = true;
-		typedef simple_alloc<T, malloc_alloc_template<inst> > _Alloc_type;
-		typedef Allocator<T, malloc_alloc_template<inst> > allocator_type;
+		typedef simple_alloc<T, malloc_alloc_template<inst> > _alloc_type;
+		typedef _allocator<T, malloc_alloc_template<inst> > allocator_type;
 	};
 
-	template <class T, bool __threads, int inst>
-	struct alloc_traits<T, default_alloc_template<__threads, inst> >
+	template <typename T, bool threads, int inst>
+	struct alloc_traits<T, default_alloc_template<threads, inst> >
 	{
 		static const bool _S_instanceless = true;
-		typedef simple_alloc<T, default_alloc_template<__threads, inst> >
-			_Alloc_type;
-		typedef Allocator<T, default_alloc_template<__threads, inst> >
+		typedef simple_alloc<T, default_alloc_template<threads, inst> >
+			_alloc_type;
+		typedef _allocator<T, default_alloc_template<threads, inst> >
 			allocator_type;
 	};
 
-	template <class T, class _Alloc>
+	/*template <typename T, typename _Alloc>
 	struct alloc_traits<T, debug_alloc<_Alloc> >
 	{
 		static const bool _S_instanceless = true;
 		typedef simple_alloc<T, debug_alloc<_Alloc> > _Alloc_type;
 		typedef Allocator<T, debug_alloc<_Alloc> > allocator_type;
-	};
+	};*/
 
 	// Versions for the Allocator adaptor used with the predefined
 	// SGI-style allocators.
 
-	template <class T, class T1, int inst>
+	template <typename T, typename T1, int inst>
 	struct alloc_traits<T,
-		Allocator<T1, malloc_alloc_template<inst> > >
+		_allocator<T1, malloc_alloc_template<inst> > >
 	{
 		static const bool _S_instanceless = true;
 		typedef simple_alloc<T, malloc_alloc_template<inst> > _Alloc_type;
-		typedef Allocator<T, malloc_alloc_template<inst> > allocator_type;
+		typedef _allocator<T, malloc_alloc_template<inst> > allocator_type;
 	};
 
-	template <class T, class T1, bool __thr, int inst>
-	struct alloc_traits<T,
-		Allocator<T1,
+	template <typename T, typename T1, bool __thr, int inst>
+	struct alloc_traits<T, _allocator<T1,
 		default_alloc_template<__thr, inst> > >
 	{
 		static const bool _S_instanceless = true;
 		typedef simple_alloc<T, default_alloc_template<__thr, inst> >
 			_Alloc_type;
-		typedef Allocator<T, default_alloc_template<__thr, inst> >
+		typedef _allocator<T, default_alloc_template<__thr, inst> >
 			allocator_type;
 	};
 
-	template <class T, class T1, class _Alloc>
+	/*template <typename T, typename T1, typename _Alloc>
 	struct alloc_traits<T, Allocator<T1, debug_alloc<_Alloc> > >
 	{
 		static const bool _S_instanceless = true;
 		typedef simple_alloc<T, debug_alloc<_Alloc> > _Alloc_type;
 		typedef Allocator<T, debug_alloc<_Alloc> > allocator_type;
-	};
-
+	};*/
 }

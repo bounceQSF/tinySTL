@@ -26,6 +26,7 @@
     <ClInclude Include="deque.h" />
     <ClInclude Include="function.h" />
     <ClInclude Include="hashtable.h" />
+    <ClInclude Include="hash_function.h" />
     <ClInclude Include="hash_map.h" />
     <ClInclude Include="hash_set.h" />
     <ClInclude Include="heap.h" />
