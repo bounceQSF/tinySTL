@@ -399,7 +399,6 @@ namespace tinySTL {
 			auto y = static_cast<link_type>(_y);
 			auto z = create_node(v);
 			if (y == _header || x || key_comp(KeyOfT()(v), key(y))) {
-				z = create_node(v);
 				left(y) = z;
 				if (y == _header) {
 					root() = z;
@@ -409,7 +408,6 @@ namespace tinySTL {
 					leftmost() = z;
 			}
 			else {
-				z = create_node(v);
 				right(y) = z;
 				if (y == rightmost())
 					rightmost() = z;
@@ -417,13 +415,13 @@ namespace tinySTL {
 			parent(z) = y;
 			left(z) = nullptr;
 			right(z) = nullptr;
-			rb_tree_rebalance(z, header->parent);
+			rb_tree_rebalance(z, _header->parent);
 			++_size;
 			return iterator(z);
 			
 		}
 
-		void rb_tree_rebalance(base_ptr x, base_ptr& root)
+		static void rb_tree_rebalance(base_ptr x, base_ptr& root)
 		{
 			x->_color = Rb_tree_red;
 			while (x != root && x->_parent->_color == Rb_tree_red) {//父节点为红
@@ -432,7 +430,7 @@ namespace tinySTL {
 					if (u && u->_color == Rb_tree_red) {//伯父节点为红色
 						x->_parent->_color = Rb_tree_black;
 						u->_color = Rb_tree_black;
-						x->_parent->_parent = Rb_tree_red;
+						x->_parent->_parent->_color = Rb_tree_red;
 						x = x->_parent->_parent;
 					}
 					else {//伯父节点为黑色或不存在
@@ -450,7 +448,7 @@ namespace tinySTL {
 					if (u && u->_color == Rb_tree_red) {//伯父节点为红色
 						x->_parent->_color = Rb_tree_black;
 						u->_color = Rb_tree_black;
-						x->_parent->_parent = Rb_tree_red;
+						x->_parent->_parent->_color = Rb_tree_red;
 						x = x->_parent->_parent;
 					}
 					else {//伯父节点为黑色或不存在
@@ -467,7 +465,7 @@ namespace tinySTL {
 			root->_color = Rb_tree_black;
 		}
 
-		void rb_tree_rotate_left(base_ptr x, base_ptr& root)
+		static void rb_tree_rotate_left(base_ptr x, base_ptr& root)
 		{
 			auto tmp = x->_right;
 			x->_right = tmp->_left;
@@ -475,16 +473,16 @@ namespace tinySTL {
 				tmp->_left->_parent = x;
 			x->_parent = tmp->_parent;
 			if (x == root)
-				root = y;
-			else if (x == x->_parent->left)
-				x->_parent->left = tmp;
+				root = tmp;
+			else if (x == x->_parent->_left)
+				x->_parent->_left = tmp;
 			else
 				x->_parent->_right = tmp;
 			tmp->_left = x;
 			x->_parent = tmp;
 		}
 
-		void rb_tree_rotate_right(base_ptr x, base_ptr& root)
+		static void rb_tree_rotate_right(base_ptr x, base_ptr& root)
 		{
 			auto tmp = x->_left;
 			x->_left = tmp->_right;

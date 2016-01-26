@@ -37,7 +37,6 @@ namespace tinySTL {
 		}
 	};
 
-	//?
 	template<typename Pair>
 	struct select1st : public unary_function<Pair, typename Pair::first_type> {
 		const typename Pair::first_type& operator()(const Pair& x)const

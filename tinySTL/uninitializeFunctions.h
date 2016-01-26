@@ -36,7 +36,7 @@ namespace tinySTL {
 	{
 		auto iter = result;//in case copy failed
 		for (; first != last; ++last, ++iter) {
-			construct(&*iter, *first); //&*
+			construct(&*iter, *first); 
 		}
 	}
 
@@ -86,7 +86,7 @@ namespace tinySTL {
 		const T& value)
 	{
 		using isPODtype = typename _type_traits<iterator_traits<_ForwardIterator>::type_value>::is_POD_type;
-		_uninitialized_fill_n_aux(first, n, value, )
+		_uninitialized_fill_n_aux(first, n, value);
 	}
 
 	template<typename _ForwardIterator, typename size, typename T>
@@ -102,7 +102,7 @@ namespace tinySTL {
 		const T& value, _false_type)
 	{
 		auto iter = first;
-		for (int i = 0; i < n; ++i, ++iter)
+		for (auto i = 0; i < n; ++i, ++iter)
 			construct(&*iter, value);
 		return iter;
 	}
