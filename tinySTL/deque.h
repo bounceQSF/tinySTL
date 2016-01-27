@@ -216,7 +216,7 @@ namespace tinySTL
 
 		void fill_initialize(size_type n, const value_type& value)
 		{
-			create_nodes(n);
+			create_map_and_node(n);
 			map_pointer cur;
 			try
 			{
@@ -232,8 +232,9 @@ namespace tinySTL
 
 		void create_map_and_node(size_type num_elements)
 		{
-			auto num_nodes = num_elements / buffer_size();
+			auto num_nodes = num_elements / buffer_size() + 1;
 			_map_size = max(size_type(INITIALIZE_MAP_SIZE), num_elements + 2);
+			_map = map_allocator::allocate(_map_size);
 
 			auto nstart = _map + (_map_size - num_nodes) / 2;
 			auto nfinish = nstart + num_nodes - 1;
@@ -244,7 +245,244 @@ namespace tinySTL
 			_finish._cur = _finish._first + num_elements % buffer_size();
 		}
 
+	public:
+		void push_back(const value_type& value)
+		{
+			if (_finish._last - 1 != _finish._cur)
+				construct(_finish._cur++, value);
+			else
+				push_back_aux(value);
+		}
 
+		void push_back_aux(const value_type& value)
+		{
+			reserve_map_at_back();
+			*(_finish._node + 1) = allocate_node();
+			try
+			{
+				construct(_finish._cur, value);
+				_finish.set_node(++_finish._node);
+				_finish._cur = _finish._first;
+			}
+			catch(...)
+			{
+				deallocate_node(*(_finish._node + 1));
+			}
+		}
+
+		void push_front(const value_type& value)
+		{
+			if (_start._first != _start._cur)
+				construct(_finish._cur--, value);
+			else
+				push_front_aux(value);
+		}
+
+		void push_front_aux(const value_type& value)
+		{
+			reserve_map_at_front();
+			*(_start._node - 1) = allocate_node();
+			try
+			{
+				_start.set_node(_start._node);
+				_start._cur = _start._cur - 1;
+				construct(_start._last, value);
+			}
+			catch (...)
+			{
+				_start.set_node(_start._node + 1);
+				_start._cur = _start._first;
+				deallocate_node(*--_start._node);
+			}
+		}
+
+
+		void pop_back()
+		{
+			if (_finish._cur != _finish._first) {
+				--_finish._cur;
+				destroy(_finish._cur);
+			}
+			else
+				pop_back_aux();
+	
+		}
+
+		void pop_back_aux()
+		{
+			deallocate_node(_finish._node);
+			_finish.set_node(--_finish._node);
+			_finish._cur = _finish._last--;
+			destroy(_finish._cur);
+		}
+
+		void pop_front()
+		{
+			if (_start._cur != _start._last - 1)
+			{
+				destroy(_start._cur);
+				++_start._cur;
+			}
+			else
+				pop_front_aux();
+			
+		}
+
+		void pop_front_aux()
+		{
+			destroy(_start._cur);
+			deallocate_node(_start._node);
+			_start.set_node(++_start._node);
+			_start._cur = _start._first;
+		}
+
+		void clear()
+		{
+			for (auto node = _start._node + 1; node != _finish._node; ++node) {
+				destroy(*node, *node + buffer_size());
+				node_allocator::deallocate(*node, buffer_size());
+			}
+			if (_start._node != _finish._node)
+			{
+				destroy(_start._cur, _start._last);
+				destroy(_finish._first, _finish._cur);
+				node_allocator::deallocate(_finish._first, buffer_size());//keep head buffer;
+			}
+			else
+				destroy(_start._cur, _finish._cur);//keep the only buffer
+			_finish = _start;
+		}
+
+		iterator erase(iterator pos)
+		{
+			iterator next = pos;
+			++next;
+			auto index = pos - _start;
+			if(index < (size() >> 1))
+			{
+				copy_backward(_start, pos, next);
+				pop_front();
+			}
+			else
+			{
+				copy(next, _finish, pos);
+				pop_back();
+			}
+			return _start + index;
+		}
+
+		iterator erase(iterator first, iterator last)
+		{
+			if (first == _start && last == _finish) {
+				clear();
+				return _finish;
+			}
+			auto n = last - first;
+			auto elem_before = first - _start;
+			if (elem_before < (size() - n) / 2)
+			{
+				copy_backward(_start, first, last);
+				auto new_start = _start + n;
+				destroy(_start, new_start);
+				for (auto cur = _start._node; cur != new_start._node; ++cur)
+					node_allocator::deallocate(*cur, buffer_size());
+				_start = new_start;
+			}
+			else
+			{
+				copy(last, _finish, first);
+				auto new_finish = _finish - n;
+				destroy(new_finish, _finish);
+				for (auto cur = new_finish._node; cur != _finish._node; ++cur)
+					node_allocator::deallocate(*cur, buffer_size());
+				_finish = new_finish;
+			}
+			return _start + elem_before;
+		}
+
+		void reserve_map_at_back(size_type nodes_to_add = 1)
+		{
+			if (nodes_to_add + 1 > _map_size - (_finish._node - _map))
+				reallocate_map(nodes_to_add, false);
+		}
+
+		void reserve_map_at_front(size_type nodes_to_add = 1)
+		{
+			if (nodes_to_add > _start._node - _map)
+				reallocate_map(nodes_to_add, true);
+		}
+
+		void reallocate_map(size_type nodes_to_add, bool add_front)
+		{
+			auto old_num_nodes = _finish._node - _start._node + 1;
+			auto new_num_nodes = old_num_nodes + nodes_to_add;
+		
+			map_pointer new_nstart;
+			if(_map_size > 2 * new_num_nodes)
+			{
+				new_nstart = _map + (_map_size - new_num_nodes) / 2 + (add_front ? nodes_to_add : 0);
+				if (new_nstart < _start._node)
+					copy(_start._node, _finish._node + 1, new_nstart);
+				else
+					copy_backward(_start, _finish._node + 1, new_nstart + old_num_nodes);
+			}
+			else
+			{
+				auto new_map_size = _map_size + max(_map_size, nodes_to_add) + 2;
+				auto new_map = map_allocator::allocate(new_map_size);
+				new_nstart = new_map + (new_map_size - new_num_nodes) / 2 + (add_front ? nodes_to_add : 0);
+				copy(_start._node, _finish._node + 1, new_nstart);
+				map_allocator::deallocate(_map, _map_size);
+				_map = new_map;
+				_map_size = new_map_size;
+			}
+			_start.set_node(new_nstart);
+			_finish.set_node(new_nstart + old_num_nodes - 1);
+		}
+
+		iterator insert(iterator pos, const value_type& value)
+		{
+			if (pos._cur == _start._cur) {
+				push_front(value);
+				return _start;
+			}
+			if (pos._cur == _finish._cur) {
+				push_back(value);
+				return _finish - 1;
+			}
+			return insert_aux(pos, value);
+		}
+
+		iterator insert_aux(iterator pos, const value_type& value)
+		{
+			auto index = pos - _start;
+			if (index < size() / 2)
+			{
+				push_front(front());
+				auto front1 = _start;
+				++front1;
+				auto front2 = front1;
+				++front2;
+				pos = _start + index;
+				iterator pos1 = pos;
+				++pos1;
+				copy(front2, pos1, front1);
+			}
+			else
+			{
+				push_back(back());
+				auto back1 = _finish;
+				--back1;
+				auto back2 = back1;
+				--back2;
+				pos = _start + index;
+				iterator pos1 = pos;
+				++pos1;
+				copy(pos, back2, back1);
+			}
+			*pos = x;
+			return pos;
+		}
 
 	public:
 		iterator begin() { return _start; } //can not
